@@ -52,10 +52,10 @@ import openperipheral.integration.vanilla.ModuleVanillaInventoryManipulation;
 @Mod(
     modid = OpenPeripheralIntegration.MOD_ID,
     name = OpenPeripheralIntegration.MOD_ID,
-    version = "$VERSION$",
+    version = Tags.VERSION,
     guiFactory = "openperipheral.integration.ConfigGuiFactory",
     acceptableRemoteVersions = "*",
-    dependencies = "required-after:OpenMods@[$LIB-VERSION$,$NEXT-LIB-VERSION$);required-after:OpenPeripheralApi@$OP-API-VERSION$;after:ComputerCraft@[1.70,];after:appliedEnergistics-2;after:IC2;after:EnderStorage;after:BuildCraft|Core;after:Forestry;after:Mystcraft;after:Railcraft;after:Thaumcraft;after:ThermalExpansion;")
+    dependencies = "required-after:OpenMods@[0.10.15,);required-after:OpenPeripheralApi;after:ComputerCraft@[3.2.0,);after:appliedEnergistics-2;after:IC2;after:EnderStorage;after:BuildCraft|Core;after:Forestry;after:Mystcraft;after:Railcraft;after:Thaumcraft;after:ThermalExpansion;")
 public class OpenPeripheralIntegration {
 
     public static final String MOD_ID = "OpenPeripheralIntegration";
