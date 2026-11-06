@@ -6,17 +6,17 @@ import openperipheral.integration.OpcAccess;
 
 public class ModuleMystcraftV2 extends ModIntegrationModule {
 
-	@Override
-	public String getModId() {
-		return Mods.MYSTCRAFT;
-	}
+    @Override
+    public String getModId() {
+        return Mods.MYSTCRAFT;
+    }
 
-	@Override
-	public void load() {
-		OpcAccess.adapterRegistry.register(new AdapterWritingDesk());
+    @Override
+    public void load() {
+        OpcAccess.adapterRegistry.register(new AdapterWritingDesk());
 
-		OpcAccess.itemStackMetaBuilder.register(new BookMetaProvider());
-		OpcAccess.itemStackMetaBuilder.register(new PageMetaProvider());
-		OpcAccess.itemStackMetaBuilder.register(new LinkingPanelMetaProvider());
-	}
+        OpcAccess.itemStackMetaBuilder.register(new BookMetaProvider());
+        OpcAccess.itemStackMetaBuilder.register(new PageMetaProvider());
+        OpcAccess.itemStackMetaBuilder.register(new LinkingPanelMetaProvider());
+    }
 }

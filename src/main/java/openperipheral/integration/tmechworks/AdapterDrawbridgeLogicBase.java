@@ -8,19 +8,19 @@ import tmechworks.lib.blocks.IDrawbridgeLogicBase;
 
 public class AdapterDrawbridgeLogicBase implements IPeripheralAdapter {
 
-	@Override
-	public Class<?> getTargetClass() {
-		return IDrawbridgeLogicBase.class;
-	}
+    @Override
+    public Class<?> getTargetClass() {
+        return IDrawbridgeLogicBase.class;
+    }
 
-	@Override
-	public String getSourceId() {
-		return "tmechworks_drawbridge";
-	}
+    @Override
+    public String getSourceId() {
+        return "tmechworks_drawbridge";
+    }
 
-	@Asynchronous
-	@ScriptCallable(description = "Checks if the drawbridge is extended or not", returnTypes = ReturnType.BOOLEAN)
-	public boolean hasExtended(IDrawbridgeLogicBase drawbridge) {
-		return drawbridge.hasExtended();
-	}
+    @Asynchronous
+    @ScriptCallable(description = "Checks if the drawbridge is extended or not", returnTypes = ReturnType.BOOLEAN)
+    public boolean hasExtended(IDrawbridgeLogicBase drawbridge) {
+        return drawbridge.hasExtended();
+    }
 }

@@ -6,13 +6,13 @@ import openperipheral.integration.OpcAccess;
 
 public class ModuleIC2 extends ModIntegrationModule {
 
-	@Override
-	public String getModId() {
-		return Mods.IC2;
-	}
+    @Override
+    public String getModId() {
+        return Mods.IC2;
+    }
 
-	@Override
-	public void load() {
-		OpcAccess.adapterRegistry.register(new AdapterElecticMachine());
-	}
+    @Override
+    public void load() {
+        OpcAccess.adapterRegistry.register(new AdapterElecticMachine());
+    }
 }

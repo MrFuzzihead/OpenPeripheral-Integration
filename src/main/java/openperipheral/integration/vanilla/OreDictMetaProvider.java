@@ -1,34 +1,36 @@
 package openperipheral.integration.vanilla;
 
-import com.google.common.collect.Maps;
 import java.util.Map;
+
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.oredict.OreDictionary;
+
+import com.google.common.collect.Maps;
+
 import openperipheral.api.meta.IItemStackMetaProvider;
 
 public class OreDictMetaProvider implements IItemStackMetaProvider<Item> {
 
-	@Override
-	public Class<? extends Item> getTargetClass() {
-		return Item.class;
-	}
+    @Override
+    public Class<? extends Item> getTargetClass() {
+        return Item.class;
+    }
 
-	@Override
-	public String getKey() {
-		return "ore_dict";
-	}
+    @Override
+    public String getKey() {
+        return "ore_dict";
+    }
 
-	@Override
-	public Object getMeta(Item target, ItemStack stack) {
-		int[] oreIds = OreDictionary.getOreIDs(stack);
+    @Override
+    public Object getMeta(Item target, ItemStack stack) {
+        int[] oreIds = OreDictionary.getOreIDs(stack);
 
-		Map<String, Boolean> result = Maps.newHashMap();
+        Map<String, Boolean> result = Maps.newHashMap();
 
-		for (int oreId : oreIds)
-			result.put(OreDictionary.getOreName(oreId), true);
+        for (int oreId : oreIds) result.put(OreDictionary.getOreName(oreId), true);
 
-		return result;
-	}
+        return result;
+    }
 
 }

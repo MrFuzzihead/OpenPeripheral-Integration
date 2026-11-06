@@ -1,9 +1,12 @@
 package openperipheral.integration.mystcraft.v2;
 
-import com.xcompwiz.mystcraft.api.item.IItemPageCollection;
 import java.util.List;
+
 import net.minecraft.item.ItemStack;
 import net.minecraft.world.WorldServer;
+
+import com.xcompwiz.mystcraft.api.item.IItemPageCollection;
+
 import openmods.fakeplayer.FakePlayerPool;
 import openmods.fakeplayer.FakePlayerPool.PlayerUserReturning;
 import openmods.fakeplayer.OpenModsFakePlayer;
@@ -19,66 +22,71 @@ import openperipheral.api.helpers.Index;
 @Asynchronous
 @AdapterSourceName("notebook")
 public class NotebookWrapper {
-	private final WorldServer ownerWorld;
 
-	private IItemPageCollection item;
+    private final WorldServer ownerWorld;
 
-	private ItemStack stack;
+    private IItemPageCollection item;
 
-	public NotebookWrapper(WorldServer ownerWorld, IItemPageCollection item, ItemStack stack) {
-		super();
-		this.ownerWorld = ownerWorld;
-		this.item = item;
-		this.stack = stack;
-	}
+    private ItemStack stack;
 
-	@ScriptCallable(returnTypes = ReturnType.STRING)
-	public String getName() {
-		return FakePlayerPool.instance.executeOnPlayer(ownerWorld, new PlayerUserReturning<String>() {
-			@Override
-			public String usePlayer(OpenModsFakePlayer fakePlayer) {
-				return item.getDisplayName(fakePlayer, stack);
-			}
-		});
-	}
+    public NotebookWrapper(WorldServer ownerWorld, IItemPageCollection item, ItemStack stack) {
+        super();
+        this.ownerWorld = ownerWorld;
+        this.item = item;
+        this.stack = stack;
+    }
 
-	@ScriptCallable(returnTypes = ReturnType.TABLE, name = "getAllPages")
-	public List<ItemStack> getPages() {
-		return FakePlayerPool.instance.executeOnPlayer(ownerWorld, new PlayerUserReturning<List<ItemStack>>() {
-			@Override
-			public List<ItemStack> usePlayer(OpenModsFakePlayer fakePlayer) {
-				return item.getItems(fakePlayer, stack);
-			}
-		});
-	}
+    @ScriptCallable(returnTypes = ReturnType.STRING)
+    public String getName() {
+        return FakePlayerPool.instance.executeOnPlayer(ownerWorld, new PlayerUserReturning<String>() {
 
-	@ScriptCallable(returnTypes = ReturnType.NUMBER)
-	public int getSlotCount(int slot) {
-		return getPages().size();
-	}
+            @Override
+            public String usePlayer(OpenModsFakePlayer fakePlayer) {
+                return item.getDisplayName(fakePlayer, stack);
+            }
+        });
+    }
 
-	@ScriptCallable(returnTypes = ReturnType.TABLE)
-	public ItemStack getPageFromSlot(@Arg(name = "slot") Index slot) {
-		List<ItemStack> pages = getPages();
-		slot.checkElementIndex("slot", pages.size());
-		return pages.get(slot.value);
-	}
+    @ScriptCallable(returnTypes = ReturnType.TABLE, name = "getAllPages")
+    public List<ItemStack> getPages() {
+        return FakePlayerPool.instance.executeOnPlayer(ownerWorld, new PlayerUserReturning<List<ItemStack>>() {
 
-	public ItemStack removePage(final ItemStack page) {
-		return FakePlayerPool.instance.executeOnPlayer(ownerWorld, new PlayerUserReturning<ItemStack>() {
-			@Override
-			public ItemStack usePlayer(OpenModsFakePlayer fakePlayer) {
-				return item.remove(fakePlayer, stack, page);
-			}
-		});
-	}
+            @Override
+            public List<ItemStack> usePlayer(OpenModsFakePlayer fakePlayer) {
+                return item.getItems(fakePlayer, stack);
+            }
+        });
+    }
 
-	public ItemStack addPage(final ItemStack page) {
-		return FakePlayerPool.instance.executeOnPlayer(ownerWorld, new PlayerUserReturning<ItemStack>() {
-			@Override
-			public ItemStack usePlayer(OpenModsFakePlayer fakePlayer) {
-				return item.addPage(fakePlayer, stack, page);
-			}
-		});
-	}
+    @ScriptCallable(returnTypes = ReturnType.NUMBER)
+    public int getSlotCount(int slot) {
+        return getPages().size();
+    }
+
+    @ScriptCallable(returnTypes = ReturnType.TABLE)
+    public ItemStack getPageFromSlot(@Arg(name = "slot") Index slot) {
+        List<ItemStack> pages = getPages();
+        slot.checkElementIndex("slot", pages.size());
+        return pages.get(slot.value);
+    }
+
+    public ItemStack removePage(final ItemStack page) {
+        return FakePlayerPool.instance.executeOnPlayer(ownerWorld, new PlayerUserReturning<ItemStack>() {
+
+            @Override
+            public ItemStack usePlayer(OpenModsFakePlayer fakePlayer) {
+                return item.remove(fakePlayer, stack, page);
+            }
+        });
+    }
+
+    public ItemStack addPage(final ItemStack page) {
+        return FakePlayerPool.instance.executeOnPlayer(ownerWorld, new PlayerUserReturning<ItemStack>() {
+
+            @Override
+            public ItemStack usePlayer(OpenModsFakePlayer fakePlayer) {
+                return item.addPage(fakePlayer, stack, page);
+            }
+        });
+    }
 }

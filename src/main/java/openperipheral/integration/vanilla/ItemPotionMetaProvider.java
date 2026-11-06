@@ -1,59 +1,62 @@
 package openperipheral.integration.vanilla;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import java.util.List;
 import java.util.Map;
+
 import net.minecraft.item.ItemPotion;
 import net.minecraft.item.ItemStack;
 import net.minecraft.potion.Potion;
 import net.minecraft.potion.PotionEffect;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+
 import openperipheral.api.helpers.ItemStackMetaProviderSimple;
 
 public class ItemPotionMetaProvider extends ItemStackMetaProviderSimple<ItemPotion> {
 
-	@Override
-	public String getKey() {
-		return "potion";
-	}
+    @Override
+    public String getKey() {
+        return "potion";
+    }
 
-	@Override
-	public Object getMeta(ItemPotion target, ItemStack stack) {
-		final Map<String, Object> results = Maps.newHashMap();
+    @Override
+    public Object getMeta(ItemPotion target, ItemStack stack) {
+        final Map<String, Object> results = Maps.newHashMap();
 
-		results.put("splash", ItemPotion.isSplash(stack.getItemDamage()));
+        results.put("splash", ItemPotion.isSplash(stack.getItemDamage()));
 
-		final List<Map<String, Object>> effectsInfo = Lists.newArrayList();
+        final List<Map<String, Object>> effectsInfo = Lists.newArrayList();
 
-		@SuppressWarnings("unchecked")
-		final List<PotionEffect> effects = target.getEffects(stack);
-		if (effects != null) {
-			for (PotionEffect effect : effects) {
-				final Map<String, Object> entry = Maps.newHashMap();
+        @SuppressWarnings("unchecked")
+        final List<PotionEffect> effects = target.getEffects(stack);
+        if (effects != null) {
+            for (PotionEffect effect : effects) {
+                final Map<String, Object> entry = Maps.newHashMap();
 
-				entry.put("duration", effect.getDuration() / 20); // ticks!
-				entry.put("amplifier", effect.getAmplifier());
-				entry.put("effect", getPotionInfo(effect.getPotionID()));
+                entry.put("duration", effect.getDuration() / 20); // ticks!
+                entry.put("amplifier", effect.getAmplifier());
+                entry.put("effect", getPotionInfo(effect.getPotionID()));
 
-				effectsInfo.add(entry);
-			}
-		}
+                effectsInfo.add(entry);
+            }
+        }
 
-		results.put("effects", effectsInfo);
+        results.put("effects", effectsInfo);
 
-		return results;
-	}
+        return results;
+    }
 
-	public static Map<String, Object> getPotionInfo(int potionId) {
-		if (potionId < 0 || potionId >= Potion.potionTypes.length) return null;
+    public static Map<String, Object> getPotionInfo(int potionId) {
+        if (potionId < 0 || potionId >= Potion.potionTypes.length) return null;
 
-		final Map<String, Object> result = Maps.newHashMap();
+        final Map<String, Object> result = Maps.newHashMap();
 
-		final Potion potion = Potion.potionTypes[potionId];
-		result.put("name", potion.getName());
-		result.put("instant", potion.isInstant());
-		result.put("color", potion.getLiquidColor());
+        final Potion potion = Potion.potionTypes[potionId];
+        result.put("name", potion.getName());
+        result.put("instant", potion.isInstant());
+        result.put("color", potion.getLiquidColor());
 
-		return result;
-	}
+        return result;
+    }
 }

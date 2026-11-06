@@ -4,17 +4,18 @@ import openperipheral.integration.ApiIntegrationModule;
 import openperipheral.integration.OpcAccess;
 
 public class ModuleForestry extends ApiIntegrationModule {
-	@Override
-	public String getApiId() {
-		return "ForestryAPI|core";
-	}
 
-	@Override
-	public void load() {
-		OpcAccess.adapterRegistry.register(new AdapterBeeHousing());
+    @Override
+    public String getApiId() {
+        return "ForestryAPI|core";
+    }
 
-		OpcAccess.converterManager.register(new ConverterIIndividual());
+    @Override
+    public void load() {
+        OpcAccess.adapterRegistry.register(new AdapterBeeHousing());
 
-		OpcAccess.itemStackMetaBuilder.register(new IndividualMetaProvider());
-	}
+        OpcAccess.converterManager.register(new ConverterIIndividual());
+
+        OpcAccess.itemStackMetaBuilder.register(new IndividualMetaProvider());
+    }
 }

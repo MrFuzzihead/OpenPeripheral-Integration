@@ -9,22 +9,23 @@ import openperipheral.api.adapter.method.ScriptCallable;
 
 public class AdapterHasWork implements IPeripheralAdapter {
 
-	private final Class<?> CLASS = ReflectionHelper.getClass("mods.railcraft.common.plugins.buildcraft.triggers.IHasWork");
+    private final Class<?> CLASS = ReflectionHelper
+        .getClass("mods.railcraft.common.plugins.buildcraft.triggers.IHasWork");
 
-	private final Function0<Boolean> HAS_WORK = MethodAccess.create(boolean.class, CLASS, "hasWork");
+    private final Function0<Boolean> HAS_WORK = MethodAccess.create(boolean.class, CLASS, "hasWork");
 
-	@Override
-	public Class<?> getTargetClass() {
-		return CLASS;
-	}
+    @Override
+    public Class<?> getTargetClass() {
+        return CLASS;
+    }
 
-	@Override
-	public String getSourceId() {
-		return "railcraft_has_work";
-	}
+    @Override
+    public String getSourceId() {
+        return "railcraft_has_work";
+    }
 
-	@ScriptCallable(description = "Returns true if has work", returnTypes = ReturnType.BOOLEAN)
-	public boolean hasWork(Object target) {
-		return HAS_WORK.call(target);
-	}
+    @ScriptCallable(description = "Returns true if has work", returnTypes = ReturnType.BOOLEAN)
+    public boolean hasWork(Object target) {
+        return HAS_WORK.call(target);
+    }
 }

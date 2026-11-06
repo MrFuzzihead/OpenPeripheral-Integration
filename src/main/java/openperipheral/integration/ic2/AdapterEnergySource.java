@@ -9,23 +9,25 @@ import openperipheral.api.adapter.method.ScriptCallable;
 @Asynchronous
 public class AdapterEnergySource implements IPeripheralAdapter {
 
-	@Override
-	public Class<?> getTargetClass() {
-		return IEnergySource.class;
-	}
+    @Override
+    public Class<?> getTargetClass() {
+        return IEnergySource.class;
+    }
 
-	@Override
-	public String getSourceId() {
-		return "eu_source";
-	}
+    @Override
+    public String getSourceId() {
+        return "eu_source";
+    }
 
-	@ScriptCallable(description = "Get the EU output", returnTypes = ReturnType.NUMBER)
-	public double getOfferedEnergy(IEnergySource source) {
-		return source.getOfferedEnergy();
-	}
+    @ScriptCallable(description = "Get the EU output", returnTypes = ReturnType.NUMBER)
+    public double getOfferedEnergy(IEnergySource source) {
+        return source.getOfferedEnergy();
+    }
 
-	@ScriptCallable(description = "Determine the tier of this energy source (1 = LV, 2 = MV, 3 = HV, 4 = EV)", returnTypes = ReturnType.NUMBER)
-	public int getEUSourceTier(IEnergySource sink) {
-		return sink.getSourceTier();
-	}
+    @ScriptCallable(
+        description = "Determine the tier of this energy source (1 = LV, 2 = MV, 3 = HV, 4 = EV)",
+        returnTypes = ReturnType.NUMBER)
+    public int getEUSourceTier(IEnergySource sink) {
+        return sink.getSourceTier();
+    }
 }
