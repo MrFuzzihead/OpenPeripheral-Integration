@@ -9,26 +9,25 @@ import openperipheral.api.adapter.method.ScriptCallable;
 
 public class AdapterRedstoneControl implements IPeripheralAdapter {
 
-	@Override
-	public Class<?> getTargetClass() {
-		return IRedstoneControl.class;
-	}
+    @Override
+    public Class<?> getTargetClass() {
+        return IRedstoneControl.class;
+    }
 
-	@Override
-	public String getSourceId() {
-		return "cofh_redstone";
-	}
+    @Override
+    public String getSourceId() {
+        return "cofh_redstone";
+    }
 
-	@ScriptCallable()
-	public void setRedstoneControl(IRedstoneControl target,
-			@Arg(name = "control") ControlMode control) {
-		SecurityUtils.checkAccess(target);
-		target.setControl(control);
-	}
+    @ScriptCallable()
+    public void setRedstoneControl(IRedstoneControl target, @Arg(name = "control") ControlMode control) {
+        SecurityUtils.checkAccess(target);
+        target.setControl(control);
+    }
 
-	@ScriptCallable(returnTypes = ReturnType.STRING)
-	public ControlMode getRedstoneControl(IRedstoneControl target) {
-		return target.getControl();
-	}
+    @ScriptCallable(returnTypes = ReturnType.STRING)
+    public ControlMode getRedstoneControl(IRedstoneControl target) {
+        return target.getControl();
+    }
 
 }

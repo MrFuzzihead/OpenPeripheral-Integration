@@ -7,18 +7,18 @@ import openperipheral.api.adapter.method.ScriptCallable;
 
 public class AdapterMachine implements IPeripheralAdapter {
 
-	@Override
-	public String getSourceId() {
-		return "buildcraft_machine";
-	}
+    @Override
+    public String getSourceId() {
+        return "buildcraft_machine";
+    }
 
-	@Override
-	public Class<?> getTargetClass() {
-		return IHasWork.class;
-	}
+    @Override
+    public Class<?> getTargetClass() {
+        return IHasWork.class;
+    }
 
-	@ScriptCallable(description = "Checks if the machine is running.", returnTypes = ReturnType.BOOLEAN)
-	public boolean hasWork(IHasWork action) {
-		return action.hasWork();
-	}
+    @ScriptCallable(description = "Checks if the machine is running.", returnTypes = ReturnType.BOOLEAN)
+    public boolean hasWork(IHasWork action) {
+        return action.hasWork();
+    }
 }

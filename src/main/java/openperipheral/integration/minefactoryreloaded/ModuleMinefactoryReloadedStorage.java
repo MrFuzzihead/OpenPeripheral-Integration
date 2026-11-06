@@ -7,17 +7,17 @@ import openperipheral.integration.OpcAccess;
 
 public class ModuleMinefactoryReloadedStorage extends CustomIntegrationModule {
 
-	public ModuleMinefactoryReloadedStorage() {
-		super(Conditions.classExists("powercrystals.minefactoryreloaded.api.IDeepStorageUnit"));
-	}
+    public ModuleMinefactoryReloadedStorage() {
+        super(Conditions.classExists("powercrystals.minefactoryreloaded.api.IDeepStorageUnit"));
+    }
 
-	@Override
-	protected String getId() {
-		return Mods.MFR + " deep storage";
-	}
+    @Override
+    protected String getId() {
+        return Mods.MFR + " deep storage";
+    }
 
-	@Override
-	public void load() {
-		OpcAccess.adapterRegistry.register(new AdapterDeepStorage());
-	}
+    @Override
+    public void load() {
+        OpcAccess.adapterRegistry.register(new AdapterDeepStorage());
+    }
 }

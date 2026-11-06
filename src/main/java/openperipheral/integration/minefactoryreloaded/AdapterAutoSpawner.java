@@ -10,29 +10,32 @@ import openperipheral.api.adapter.method.ReturnType;
 import openperipheral.api.adapter.method.ScriptCallable;
 
 public class AdapterAutoSpawner implements IPeripheralAdapter {
-	private final Class<?> CLASS = ReflectionHelper.getClass("powercrystals.minefactoryreloaded.tile.machine.TileEntityAutoSpawner");
 
-	private final Function0<Boolean> GET_SPAWN_EXACT = MethodAccess.create(boolean.class, CLASS, "getSpawnExact");
-	private final Function1<Void, Boolean> SET_SPAWN_EXACT = MethodAccess.create(void.class, CLASS, boolean.class, "setSpawnExact");
+    private final Class<?> CLASS = ReflectionHelper
+        .getClass("powercrystals.minefactoryreloaded.tile.machine.TileEntityAutoSpawner");
 
-	@Override
-	public String getSourceId() {
-		return "mfr_spawner";
-	}
+    private final Function0<Boolean> GET_SPAWN_EXACT = MethodAccess.create(boolean.class, CLASS, "getSpawnExact");
+    private final Function1<Void, Boolean> SET_SPAWN_EXACT = MethodAccess
+        .create(void.class, CLASS, boolean.class, "setSpawnExact");
 
-	@Override
-	public Class<?> getTargetClass() {
-		return CLASS;
-	}
+    @Override
+    public String getSourceId() {
+        return "mfr_spawner";
+    }
 
-	@ScriptCallable(description = "Get value of spawn exact copy toggle", returnTypes = ReturnType.BOOLEAN)
-	public boolean getSpawnExact(Object tileEntityAutoSpawner) {
-		return GET_SPAWN_EXACT.call(tileEntityAutoSpawner);
-	}
+    @Override
+    public Class<?> getTargetClass() {
+        return CLASS;
+    }
 
-	@ScriptCallable(description = "Set the value of spawn exact copy")
-	public void setSpawnExact(Object tileEntityAutoSpawner, @Arg(name = "spawnExact") boolean spawnExact) {
-		SET_SPAWN_EXACT.call(tileEntityAutoSpawner, spawnExact);
-	}
+    @ScriptCallable(description = "Get value of spawn exact copy toggle", returnTypes = ReturnType.BOOLEAN)
+    public boolean getSpawnExact(Object tileEntityAutoSpawner) {
+        return GET_SPAWN_EXACT.call(tileEntityAutoSpawner);
+    }
+
+    @ScriptCallable(description = "Set the value of spawn exact copy")
+    public void setSpawnExact(Object tileEntityAutoSpawner, @Arg(name = "spawnExact") boolean spawnExact) {
+        SET_SPAWN_EXACT.call(tileEntityAutoSpawner, spawnExact);
+    }
 
 }

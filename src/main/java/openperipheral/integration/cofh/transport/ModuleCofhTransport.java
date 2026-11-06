@@ -5,15 +5,15 @@ import openperipheral.integration.OpcAccess;
 
 public class ModuleCofhTransport extends ApiIntegrationModule {
 
-	@Override
-	public String getApiId() {
-		return "CoFHAPI|transport";
-	}
+    @Override
+    public String getApiId() {
+        return "CoFHAPI|transport";
+    }
 
-	@Override
-	public void load() {
-		OpcAccess.adapterRegistry.register(new AdapterEnderEnergyAttuned());
-		OpcAccess.adapterRegistry.register(new AdapterEnderItemAttuned());
-		OpcAccess.adapterRegistry.register(new AdapterEnderFluidAttuned());
-	}
+    @Override
+    public void load() {
+        OpcAccess.adapterRegistry.register(new AdapterEnderEnergyAttuned());
+        OpcAccess.adapterRegistry.register(new AdapterEnderItemAttuned());
+        OpcAccess.adapterRegistry.register(new AdapterEnderFluidAttuned());
+    }
 }

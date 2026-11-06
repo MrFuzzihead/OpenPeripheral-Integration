@@ -4,20 +4,21 @@ import openmods.integration.IIntegrationModule;
 import openperipheral.integration.OpcAccess;
 
 public class ModuleVanillaInventoryManipulation implements IIntegrationModule {
-	public static String DUMMY_VANILLA_MODID = "vanilla";
 
-	@Override
-	public String name() {
-		return "Vanilla CC integration module (inventory manipulation)";
-	}
+    public static String DUMMY_VANILLA_MODID = "vanilla";
 
-	@Override
-	public boolean canLoad() {
-		return true;
-	}
+    @Override
+    public String name() {
+        return "Vanilla CC integration module (inventory manipulation)";
+    }
 
-	@Override
-	public void load() {
-		OpcAccess.adapterRegistry.register(new AdapterWorldInventory());
-	}
+    @Override
+    public boolean canLoad() {
+        return true;
+    }
+
+    @Override
+    public void load() {
+        OpcAccess.adapterRegistry.register(new AdapterWorldInventory());
+    }
 }

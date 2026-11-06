@@ -5,13 +5,13 @@ import openperipheral.integration.OpcAccess;
 
 public class ModuleCofhInventory extends ApiIntegrationModule {
 
-	@Override
-	public String getApiId() {
-		return "CoFHAPI|inventory";
-	}
+    @Override
+    public String getApiId() {
+        return "CoFHAPI|inventory";
+    }
 
-	@Override
-	public void load() {
-		OpcAccess.adapterRegistry.register(new AdapterInventoryHandler());
-	}
+    @Override
+    public void load() {
+        OpcAccess.adapterRegistry.register(new AdapterInventoryHandler());
+    }
 }

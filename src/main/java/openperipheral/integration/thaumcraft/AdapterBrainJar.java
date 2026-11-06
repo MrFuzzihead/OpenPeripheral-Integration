@@ -9,22 +9,25 @@ import openperipheral.api.adapter.method.ScriptCallable;
 
 @Asynchronous
 public class AdapterBrainJar implements IPeripheralAdapter {
-	private final Class<?> CLASS = ReflectionHelper.getClass("thaumcraft.common.tiles.TileJarBrain");
 
-	private final FieldAccess<Integer> XP = FieldAccess.create(CLASS, "xp");
+    private final Class<?> CLASS = ReflectionHelper.getClass("thaumcraft.common.tiles.TileJarBrain");
 
-	@Override
-	public Class<?> getTargetClass() {
-		return CLASS;
-	}
+    private final FieldAccess<Integer> XP = FieldAccess.create(CLASS, "xp");
 
-	@Override
-	public String getSourceId() {
-		return "thaumcraft_brain";
-	}
+    @Override
+    public Class<?> getTargetClass() {
+        return CLASS;
+    }
 
-	@ScriptCallable(returnTypes = ReturnType.NUMBER, description = "Returns the amount of XP stored in the Brain in a Jar")
-	public int getXP(Object target) {
-		return XP.get(target);
-	}
+    @Override
+    public String getSourceId() {
+        return "thaumcraft_brain";
+    }
+
+    @ScriptCallable(
+        returnTypes = ReturnType.NUMBER,
+        description = "Returns the amount of XP stored in the Brain in a Jar")
+    public int getXP(Object target) {
+        return XP.get(target);
+    }
 }

@@ -5,16 +5,16 @@ import openperipheral.integration.OpcAccess;
 
 public class ModuleCofhEnergy extends ApiIntegrationModule {
 
-	@Override
-	public String getApiId() {
-		return "CoFHAPI|energy";
-	}
+    @Override
+    public String getApiId() {
+        return "CoFHAPI|energy";
+    }
 
-	@Override
-	public void load() {
-		OpcAccess.adapterRegistry.register(new AdapterEnergyReceiver());
-		OpcAccess.adapterRegistry.register(new AdapterEnergyProvider());
+    @Override
+    public void load() {
+        OpcAccess.adapterRegistry.register(new AdapterEnergyReceiver());
+        OpcAccess.adapterRegistry.register(new AdapterEnergyProvider());
 
-		OpcAccess.itemStackMetaBuilder.register(new EnergyMetaProvider());
-	}
+        OpcAccess.itemStackMetaBuilder.register(new EnergyMetaProvider());
+    }
 }
