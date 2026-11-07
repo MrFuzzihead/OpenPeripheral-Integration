@@ -6,25 +6,14 @@ import net.minecraft.item.ItemStack;
 
 import com.google.common.collect.Maps;
 
-import openmods.reflection.MethodAccess;
-import openmods.reflection.MethodAccess.Function1;
-import openmods.reflection.ReflectionHelper;
+import dan200.computercraft.shared.media.items.ItemPrintout;
 import openperipheral.api.meta.IItemStackMetaProvider;
 
-public class PrintoutMetaProvider implements IItemStackMetaProvider<Object> {
-
-    private final Class<?> CLASS = ReflectionHelper.getClass("dan200.computercraft.shared.media.items.ItemPrintout");
-
-    private final Function1<String, ItemStack> GET_TITLE = MethodAccess
-        .create(String.class, CLASS, ItemStack.class, "getTitle");
-    private final Function1<Integer, ItemStack> GET_PAGE_COUNT = MethodAccess
-        .create(int.class, CLASS, ItemStack.class, "getPageCount");
-    private final Function1<String[], ItemStack> GET_TEXT = MethodAccess
-        .create(String[].class, CLASS, ItemStack.class, "getText");
+public class PrintoutMetaProvider implements IItemStackMetaProvider<ItemPrintout> {
 
     @Override
-    public Class<?> getTargetClass() {
-        return CLASS;
+    public Class<? extends ItemPrintout> getTargetClass() {
+        return ItemPrintout.class;
     }
 
     @Override
@@ -33,14 +22,12 @@ public class PrintoutMetaProvider implements IItemStackMetaProvider<Object> {
     }
 
     @Override
-    public Object getMeta(Object target, ItemStack stack) {
+    public Object getMeta(ItemPrintout target, ItemStack stack) {
         Map<String, Object> printoutMap = Maps.newHashMap();
 
-        printoutMap.put("title", GET_TITLE.call(target, stack));
-        printoutMap.put("pages", GET_PAGE_COUNT.call(target, stack));
-        String[] texts = GET_TEXT.call(target, stack);
-
-        printoutMap.put("text", texts);
+        printoutMap.put("title", ItemPrintout.getTitle(stack));
+        printoutMap.put("pages", ItemPrintout.getPageCount(stack));
+        printoutMap.put("text", ItemPrintout.getText(stack));
 
         return printoutMap;
     }
