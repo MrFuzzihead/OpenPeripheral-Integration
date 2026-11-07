@@ -55,7 +55,7 @@ import openperipheral.integration.vanilla.ModuleVanillaInventoryManipulation;
     version = Tags.VERSION,
     guiFactory = "openperipheral.integration.ConfigGuiFactory",
     acceptableRemoteVersions = "*",
-    dependencies = "required-after:OpenMods@[0.10.15,);required-after:OpenPeripheralApi;after:ComputerCraft@[3.2.0,);after:appliedEnergistics-2;after:IC2;after:EnderStorage;after:BuildCraft|Core;after:Forestry;after:Mystcraft;after:Railcraft;after:Thaumcraft;after:ThermalExpansion;")
+    dependencies = "required-after:OpenMods@[0.10.15,);required-after:OpenPeripheralApi;after:ComputerCraft@[3.3.0,);after:appliedEnergistics-2;after:IC2;after:EnderStorage;after:BuildCraft|Core;after:Forestry;after:Mystcraft;after:Railcraft;after:Thaumcraft;after:ThermalExpansion;")
 public class OpenPeripheralIntegration {
 
     public static final String MOD_ID = "OpenPeripheralIntegration";

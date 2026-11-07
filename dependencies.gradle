@@ -36,7 +36,7 @@
 dependencies {
     runtimeOnlyNonPublishable("com.github.GTNewHorizons:NotEnoughItems:2.9.1-GTNH:dev")
 
-    api("com.github.MrFuzzihead:Computercraft-Legacy:3.2.0:dev")
+    api("com.github.MrFuzzihead:Computercraft-Legacy:3.3.0:dev")
     api("com.github.GTNewHorizons:OpenModsLib:0.10.15:dev")
     compileOnly("com.github.GTNewHorizons:Applied-Energistics-2-Unofficial:rv3-beta-1097-GTNH:dev")
     compileOnly("com.github.GTNewHorizons:BuildCraft:7.2.0:dev")
@@ -48,7 +48,7 @@ dependencies {
     compileOnly("com.github.GTNewHorizons:Railcraft:9.18.0:dev")
     compileOnly("curse.maven:minefactory-reloaded-66672:2277486")
     compileOnly("curse.maven:Mystcraft-224599:2417044")
-    api("com.github.MrFuzzihead:OpenPeripheral:2.0.0:dev") {
+    api("com.github.MrFuzzihead:OpenPeripheral:2.1.0:dev") {
         exclude(group: "com.github.MrFuzzihead", module: "Computercraft-Legacy")
     }
 }

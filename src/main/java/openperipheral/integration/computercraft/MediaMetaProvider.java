@@ -7,18 +7,11 @@ import net.minecraft.item.ItemStack;
 
 import com.google.common.collect.Maps;
 
+import dan200.computercraft.ComputerCraft;
 import dan200.computercraft.api.media.IMedia;
-import openmods.reflection.MethodAccess;
-import openmods.reflection.MethodAccess.Function1;
-import openmods.reflection.ReflectionHelper;
 import openperipheral.api.meta.IItemStackCustomMetaProvider;
 
 public class MediaMetaProvider implements IItemStackCustomMetaProvider<Item> {
-
-    private final Class<?> API_CLASS = ReflectionHelper.getClass("dan200.computercraft.ComputerCraft");
-
-    private final Function1<IMedia, ItemStack> GET_MEDIA = MethodAccess
-        .create(IMedia.class, API_CLASS, ItemStack.class, "getMedia");
 
     @Override
     public Class<? extends Item> getTargetClass() {
@@ -34,7 +27,7 @@ public class MediaMetaProvider implements IItemStackCustomMetaProvider<Item> {
     public Object getMeta(Item target, ItemStack stack) {
         if (target instanceof IMedia) return addDiskInfo(stack, (IMedia) target);
 
-        IMedia media = GET_MEDIA.call(null, stack);
+        IMedia media = ComputerCraft.getMedia(stack);
         if (media != null) return addDiskInfo(stack, media);
 
         return null;
@@ -53,7 +46,7 @@ public class MediaMetaProvider implements IItemStackCustomMetaProvider<Item> {
 
     @Override
     public boolean canApply(Item target, ItemStack stack) {
-        return (target instanceof IMedia || GET_MEDIA.call(null, stack) != null);
+        return (target instanceof IMedia || ComputerCraft.getMedia(stack) != null);
     }
 
 }
