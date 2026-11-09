@@ -28,7 +28,7 @@ public class OpenPeripheralIntegration {
 
     public static final String CATEGORY_MODULES = "modules";
 
-    private static boolean checkConfig(Configuration config, String value) {
+    static boolean checkConfig(Configuration config, String value) {
         final Property property = config.get(CATEGORY_MODULES, value, true);
         property.setRequiresMcRestart(true);
         return property.getBoolean();

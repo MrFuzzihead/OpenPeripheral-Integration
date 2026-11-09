@@ -230,18 +230,34 @@ public class CofhAdaptersTest {
         verify(energy).clearFrequency();
 
         final IEnderItemHandler item = mock(IEnderItemHandler.class);
+        when(item.getChannelString()).thenReturn("items");
+        when(item.getFrequency()).thenReturn(3);
         when(item.canSendItems()).thenReturn(true);
         when(item.canReceiveItems()).thenReturn(true);
         final AdapterEnderItemAttuned itemAdapter = new AdapterEnderItemAttuned();
+        Assert.assertEquals("items", itemAdapter.getChannelName(item));
+        Assert.assertEquals(3, itemAdapter.getFrequency(item));
         Assert.assertTrue(itemAdapter.canSendItems(item));
         Assert.assertTrue(itemAdapter.canReceiveItems(item));
+        itemAdapter.setFrequency(item, 4);
+        verify(item).setFrequency(4);
+        itemAdapter.clearFrequency(item);
+        verify(item).clearFrequency();
 
         final IEnderFluidHandler fluid = mock(IEnderFluidHandler.class);
+        when(fluid.getChannelString()).thenReturn("fluids");
+        when(fluid.getFrequency()).thenReturn(6);
         when(fluid.canSendFluid()).thenReturn(true);
         when(fluid.canReceiveFluid()).thenReturn(true);
         final AdapterEnderFluidAttuned fluidAdapter = new AdapterEnderFluidAttuned();
+        Assert.assertEquals("fluids", fluidAdapter.getChannelName(fluid));
+        Assert.assertEquals(6, fluidAdapter.getFrequency(fluid));
         Assert.assertTrue(fluidAdapter.canSendFluid(fluid));
         Assert.assertTrue(fluidAdapter.canReceiveFluid(fluid));
+        fluidAdapter.setFrequency(fluid, 7);
+        verify(fluid).setFrequency(7);
+        fluidAdapter.clearFrequency(fluid);
+        verify(fluid).clearFrequency();
     }
 
     @Test

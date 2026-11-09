@@ -141,6 +141,19 @@ public class VanillaTileEntityAdaptersTest {
     }
 
     @Test
+    public void noteBlockPlaySoundUsesRelativeCoordinates() {
+        final World world = world();
+        final TileEntityNote note = new TileEntityNote();
+        note.setWorldObj(world);
+        note.xCoord = 1;
+        note.yCoord = 2;
+        note.zCoord = 3;
+
+        new AdapterNoteBlock().playSound(note, "sound", 1.0f, 0.5f, 0.5, -0.5, null);
+        verify(world).playSoundEffect(2.0, 2.0, 3.5, "sound", 0.5f, 1.0f);
+    }
+
+    @Test
     public void noteBlockNoteIsExposed() {
         final TileEntityNote note = new TileEntityNote();
         note.note = 17;

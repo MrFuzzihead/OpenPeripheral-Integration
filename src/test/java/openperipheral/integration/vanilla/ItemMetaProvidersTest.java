@@ -211,6 +211,29 @@ public class ItemMetaProvidersTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
+    public void potionEffectsAreListed() {
+        final ItemPotion potion = new ItemPotion();
+        final ItemStack stack = new ItemStack(potion, 1, 8193);
+        final Map<String, Object> meta = (Map<String, Object>) new ItemPotionMetaProvider().getMeta(potion, stack);
+        final List<?> effects = (List<?>) meta.get("effects");
+        Assert.assertNotNull(effects);
+        Assert.assertFalse("Expected at least one potion effect for meta 8193", effects.isEmpty());
+    }
+
+    @Test
+    public void potionInfoHandlesNullEntries() {
+        int nullIndex = -1;
+        for (int i = 0; i < net.minecraft.potion.Potion.potionTypes.length; i++) {
+            if (net.minecraft.potion.Potion.potionTypes[i] == null) {
+                nullIndex = i;
+                break;
+            }
+        }
+        if (nullIndex >= 0) Assert.assertNull(ItemPotionMetaProvider.getPotionInfo(nullIndex));
+    }
+
+    @Test
     public void enchantedBookWithoutDataHasNoMetadata() {
         final ItemEnchantedBook book = new ItemEnchantedBook();
         final Object meta = new EnchantedBookMetaProvider().getMeta(book, new ItemStack(book));

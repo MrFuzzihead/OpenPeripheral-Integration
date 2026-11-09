@@ -29,6 +29,7 @@ import appeng.api.storage.data.IItemList;
 import openperipheral.api.adapter.method.IMultiReturn;
 import openperipheral.api.converter.IConverter;
 import openperipheral.api.helpers.Index;
+import openperipheral.integration.OpcAccess;
 
 public class AppEngAdaptersTest {
 
@@ -226,5 +227,94 @@ public class AppEngAdaptersTest {
     public void multipleReturnHelper() {
         final IMultiReturn result = openperipheral.api.helpers.MultiReturn.wrap(1, "one");
         Assert.assertArrayEquals(new Object[] { 1, "one" }, result.getObjects());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void availableItemFormats() {
+        final IGrid grid = mock(IGrid.class);
+        final IStorageGrid storage = mock(IStorageGrid.class);
+        final IMEMonitor<IAEItemStack> monitor = mock(IMEMonitor.class);
+        final IItemList<IAEItemStack> list = mock(IItemList.class);
+        final IAEItemStack aeStack = mock(IAEItemStack.class);
+        final IGridHost host = hostWith(grid, storage);
+
+        when(storage.getItemInventory()).thenReturn(monitor);
+        when(monitor.getStorageList()).thenReturn(list);
+        when(list.iterator()).thenAnswer(
+            invocation -> Collections.singletonList(aeStack)
+                .iterator());
+        when(list.size()).thenReturn(1);
+
+        final net.minecraft.item.ItemStack itemStack = new net.minecraft.item.ItemStack(new net.minecraft.item.Item());
+        when(aeStack.getItemStack()).thenReturn(itemStack);
+
+        final IConverter converter = mock(IConverter.class);
+        when(converter.fromJava(any())).thenAnswer(invocation -> new HashMap<String, Object>());
+
+        final openperipheral.api.meta.IMetaProviderProxy proxy = mock(openperipheral.api.meta.IMetaProviderProxy.class);
+        final openperipheral.api.meta.IItemStackPartialMetaBuilder originalMeta = OpcAccess.itemStackMetaBuilder;
+        OpcAccess.itemStackMetaBuilder = mock(openperipheral.api.meta.IItemStackPartialMetaBuilder.class);
+        when(OpcAccess.itemStackMetaBuilder.createProxy(any())).thenReturn(proxy);
+        try {
+            final AdapterNetwork adapter = new AdapterNetwork();
+
+            final List<?> proxied = adapter.getAvailableItems(host, converter, AdapterNetwork.ItemDetails.PROXY, null);
+            Assert.assertSame(proxy, ((Map<String, Object>) proxied.get(0)).get("item"));
+
+            final List<?> detailed = adapter.getAvailableItems(host, converter, AdapterNetwork.ItemDetails.ALL, null);
+            Assert.assertSame(itemStack, ((Map<String, Object>) detailed.get(0)).get("item"));
+
+            final List<?> plain = adapter.getAvailableItems(host, converter, AdapterNetwork.ItemDetails.NONE, null);
+            Assert.assertFalse(((Map<String, Object>) plain.get(0)).containsKey("item"));
+        } finally {
+            OpcAccess.itemStackMetaBuilder = originalMeta;
+        }
+    }
+
+    @Test
+    public void itemDetailWithoutStoredItems() {
+        final IGrid grid = mock(IGrid.class);
+        final IStorageGrid storage = mock(IStorageGrid.class);
+        final IMEMonitor<IAEItemStack> monitor = mock(IMEMonitor.class);
+        final IItemList<IAEItemStack> list = mock(IItemList.class);
+        final IGridHost host = hostWith(grid, storage);
+
+        when(storage.getItemInventory()).thenReturn(monitor);
+        when(monitor.getStorageList()).thenReturn(list);
+        when(list.iterator()).thenReturn(
+            Collections.<IAEItemStack>emptyList()
+                .iterator());
+
+        Assert.assertNull(
+            new AdapterNetwork().getItemDetail(
+                host,
+                new openperipheral.integration.vanilla.ItemFingerprint("minecraft:stone", 0, null),
+                null));
+    }
+
+    @Test
+    public void interfaceCanExport() {
+        final net.minecraft.tileentity.TileEntity tile = mock(
+            net.minecraft.tileentity.TileEntity.class,
+            org.mockito.Mockito.withSettings()
+                .extraInterfaces(IGridHost.class));
+        final net.minecraft.world.World world = mock(net.minecraft.world.World.class);
+        when(tile.getWorldObj()).thenReturn(world);
+        tile.xCoord = 0;
+        tile.yCoord = 0;
+        tile.zCoord = 0;
+
+        final net.minecraft.tileentity.TileEntity neighbour = mock(
+            net.minecraft.tileentity.TileEntity.class,
+            org.mockito.Mockito.withSettings()
+                .extraInterfaces(net.minecraft.inventory.IInventory.class));
+        when(world.getTileEntity(1, 0, 0)).thenReturn(neighbour);
+
+        final AdapterInterface adapter = new AdapterInterface();
+        Assert.assertTrue(adapter.canExport((IGridHost) tile, ForgeDirection.EAST));
+
+        when(world.getTileEntity(1, 0, 0)).thenReturn(null);
+        Assert.assertFalse(adapter.canExport((IGridHost) tile, ForgeDirection.EAST));
     }
 }

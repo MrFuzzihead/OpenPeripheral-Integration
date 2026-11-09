@@ -8,9 +8,9 @@ Test/build facts at the time of writing:
 
 | Item | Value |
 |------|-------|
-| `./gradlew test` | **181 tests / 24 classes, all green** |
-| JaCoCo | **55.5 % line** (1364/2456), **44.7 % branch** (305/682) |
-| Coverage floor enforced by `check` | 52 % line / 42 % branch |
+| `./gradlew test` | **206 tests / 29 classes, all green** |
+| JaCoCo | **69.6 % line** (1710/2456), **60.9 % branch** (415/682) |
+| Coverage floor enforced by `check` | 66 % line / 57 % branch |
 | `./gradlew check` | green (compile, tests, JaCoCo verification, Spotless, Checkstyle) |
 | `./gradlew gameTestServer` | green — `GAMETEST_INT_ADAPTERS_OK`, `GAMETEST_INT_LUA_OK`, `OPENPERIPHERAL_INTEGRATION_GAMETEST_OK` |
 | Unit-test JVM | Java 8 toolchain (same bytecode target the mod ships) |
@@ -58,7 +58,7 @@ New/changed files:
 |---|---|
 | `dependencies.gradle` | `testImplementation` JUnit 4.13.2, Mockito 4.11.0 + `mockito-inline`, plus the IC2/Railcraft/Thaumcraft/BuildCraft/Forestry/TMechworks/AE2/EnderStorage/CoFH/MFR/Mystcraft/ThermalExpansion dev jars |
 | `addon.gradle.kts` | JaCoCo, Java 8 test toolchain, `gameTest` source set, `gameTestServer`, coverage floor |
-| `src/test/java/openperipheral/integration/**` | 181 headless tests across 24 classes |
+| `src/test/java/openperipheral/integration/**` | 206 headless tests across 29 classes |
 | `src/gameTest/java/openperipheral/integration/gametest/IntegrationGameTestMod.java` | non-shipped test mod: real provider, fake CC access/context, real ComputerCraft computer |
 | `src/gameTest/resources/openperipheralintegration/lua/peripheral_tests.lua` | Lua suite shared by the headless test and the in-game test |
 | `.github/workflows/game-test.yml` | CI job that boots a dedicated server and greps the markers |
@@ -66,7 +66,7 @@ New/changed files:
 Commands:
 
 ```sh
-./gradlew test                        # 181 JUnit tests (Java 8)
+./gradlew test                        # 206 JUnit tests (Java 8)
 ./gradlew jacocoTestReport            # build/reports/jacoco/test/html
 ./gradlew jacocoTestCoverageVerification
 ./gradlew check                       # tests + coverage floor + Spotless + Checkstyle
@@ -222,6 +222,34 @@ Coverage gaps are listed in §8.
 - Forestry: a single malformed mutation is now logged and skipped instead of aborting the whole breeding
   list.
 - Tests: **181**, coverage **55.5 % line / 44.7 % branch**; floor raised to 52 % / 42 %.
+
+---
+
+## 0i. Coverage push (batch 9)
+
+- **Forestry:** mocked `AlleleManager.alleleRegistry` to exercise the full `AdapterBeeHousing` surface
+  (species lists, parents/children, secret filtering, malformed mutations), and covered the butterfly and
+  tree genome readers.
+- **AE2:** `CraftingRequester` (injection, state events, node forwarding), `CraftingCallback` completed-job
+  path, network item formats and empty `getItemDetail`, and `canExport`.
+- **ComputerCraft:** turtle, media and computer item metadata providers.
+- **Mystcraft:** v2 book metadata, page-collection wrapper, desk pull + `writeSymbol` (by injecting a fake
+  `WorldPool` into OpenModsLib's `FakePlayerPool`), and all `MystcraftAccess` error paths.
+- **Smaller:** IC2 `ElectricItemMetaProvider`, Railcraft `TicketMetaProvider` (fields made non-final for
+  `@ObjectHolder`-style injection), note-block `playSound`, potion effect lists, `checkConfig`, and the
+  Ender item/fluid attuned adapters.
+- Tests: **206**, coverage **69.6 % line / 60.9 % branch**; floor raised to 66 % / 57 %.
+
+Remaining uncovered code is blocked by the headless environment rather than by missing tests:
+
+| Blocked area | Reason |
+|---|---|
+| `MinefactoryReloaded` adapters + `ModuleMinefactoryReloaded` | internal TEs run `cofh.lib.util.helpers.FluidHelper.<clinit>`, which needs a bootstrapped fluid registry |
+| AE2 `AdapterInterface` export/crafting, `StorageCellMetaProvider`, `AdapterGridBase`, `ConverterAEItemStack`, `ItemFingerprint` item constructors | need `AEApi`/`GameData` registration, which requires FML's `LaunchClassLoader` |
+| `Mystcraft v1` adapter/wrapper | the current Mystcraft jar only contains the v2 desk API |
+| `EnderStorage` colour helpers, `EntityWolf` collar colour | OpenModsLib `ColorUtils` static init reads the block registry |
+| `AdapterNoteBlock.setPitch` | `ForgeHooks` static init needs a populated item registry |
+| `OpenPeripheralIntegration.preInit`, `IntegrationModules.createMystcraft` | instantiate `Configuration` / `Loader`, which require FML's launch class loader |
 
 ---
 
@@ -524,7 +552,7 @@ Highest-value additions:
 ```text
 ./gradlew updateDependencies        # then manually corrected (AE2 1099, OpenModsLib 0.10.15)
 ./gradlew spotlessApply
-./gradlew test                      # 181 tests, green
+./gradlew test                      # 206 tests, green
 ./gradlew jacocoTestReport          # 21.3 % line, 18.6 % branch
 ./gradlew check                     # green
 ./gradlew gameTestServer            # green (adapter + real Lua markers)
