@@ -46,10 +46,10 @@ public class CraftingRequester implements ICraftingRequester {
     // This method should never be called on our instance since it's never
     // really part of the ME grid in the first place. The only method that
     // would get called is the one from the original version; we can safely
-    // ignore this method and just return null.
+    // ignore this method and return an empty set (AE2 iterates it).
     @Override
     public ImmutableSet<ICraftingLink> getRequestedJobs() {
-        return null;
+        return ImmutableSet.of();
     }
 
     // The following methods are inherited by ICraftingRequester from

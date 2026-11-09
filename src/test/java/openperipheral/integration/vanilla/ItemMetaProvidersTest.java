@@ -118,6 +118,28 @@ public class ItemMetaProvidersTest {
     }
 
     @Test
+    public void enchantmentListIgnoresOutOfRangeIds() {
+        final net.minecraft.nbt.NBTTagList list = new net.minecraft.nbt.NBTTagList();
+        final NBTTagCompound valid = new NBTTagCompound();
+        valid.setShort("id", (short) Enchantment.sharpness.effectId);
+        valid.setShort("lvl", (short) 1);
+        list.appendTag(valid);
+
+        final NBTTagCompound tooLarge = new NBTTagCompound();
+        tooLarge.setShort("id", (short) 5000);
+        tooLarge.setShort("lvl", (short) 1);
+        list.appendTag(tooLarge);
+
+        final NBTTagCompound negative = new NBTTagCompound();
+        negative.setShort("id", (short) -3);
+        negative.setShort("lvl", (short) 1);
+        list.appendTag(negative);
+
+        final List<?> entries = (List<?>) ModuleVanilla.listEnchantments(list);
+        Assert.assertEquals(1, entries.size());
+    }
+
+    @Test
     public void enchantmentListSkipsUnusedIds() {
         int unusedId = -1;
         for (int i = 0; i < Enchantment.enchantmentsList.length; i++) {

@@ -57,7 +57,7 @@ public class AdapterSign implements IPeripheralAdapter {
         final String[] signText = sign.signText;
         for (int i = 0; i < signText.length; i++) {
             final String line = (i < lines.length ? Strings.nullToEmpty(lines[i]) : "");
-            signText[i] = line;
+            setLine(sign, i, line);
         }
 
         updateSign(sign);
@@ -77,7 +77,7 @@ public class AdapterSign implements IPeripheralAdapter {
         final int maxLength = sign.signText.length;
 
         Preconditions
-            .checkArgument(newLength >= 0 && newLength < maxLength, "Value must be in range [1,%s]", maxLength);
+            .checkArgument(newLength >= 1 && newLength <= maxLength, "Value must be in range [1,%s]", maxLength);
 
         for (int i = 0; i < maxLength; ++i) setLine(sign, i, i < newLength ? lines[i] : "");
 

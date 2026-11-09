@@ -26,19 +26,40 @@ public class AdapterInventoryHandler implements IPeripheralAdapter {
     @ScriptCallable(
         returnTypes = ReturnType.TABLE,
         description = "Get the contents of the IInventoryHandler's inventory")
-    List<ItemStack> getInventoryContents(IInventoryHandler target, @Arg(name = "from") ForgeDirection from) {
+    public List<ItemStack> getInventoryContents(IInventoryHandler target,
+        @Arg(
+            name = "from",
+            description = "The side to query. (north, south, east, west, up or down)") ForgeDirection from) {
         return target.getInventoryContents(from);
     }
 
-    int getSizeInventory(IInventoryHandler target, @Arg(name = "from") ForgeDirection from) {
+    @ScriptCallable(
+        returnTypes = ReturnType.NUMBER,
+        description = "Get the number of slots of the IInventoryHandler's inventory")
+    public int getSizeInventory(IInventoryHandler target,
+        @Arg(
+            name = "from",
+            description = "The side to query. (north, south, east, west, up or down)") ForgeDirection from) {
         return target.getSizeInventory(from);
     }
 
-    boolean isEmpty(IInventoryHandler target, @Arg(name = "from") ForgeDirection from) {
+    @ScriptCallable(
+        returnTypes = ReturnType.BOOLEAN,
+        description = "Returns true when the IInventoryHandler's inventory is empty")
+    public boolean isEmpty(IInventoryHandler target,
+        @Arg(
+            name = "from",
+            description = "The side to query. (north, south, east, west, up or down)") ForgeDirection from) {
         return target.isEmpty(from);
     }
 
-    boolean isFull(IInventoryHandler target, @Arg(name = "from") ForgeDirection from) {
+    @ScriptCallable(
+        returnTypes = ReturnType.BOOLEAN,
+        description = "Returns true when the IInventoryHandler's inventory is full")
+    public boolean isFull(IInventoryHandler target,
+        @Arg(
+            name = "from",
+            description = "The side to query. (north, south, east, west, up or down)") ForgeDirection from) {
         return target.isFull(from);
     }
 }

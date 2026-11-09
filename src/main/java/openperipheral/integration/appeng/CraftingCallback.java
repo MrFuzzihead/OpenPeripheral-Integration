@@ -93,6 +93,7 @@ public class CraftingCallback implements ICraftingCallback {
 
             if (missing > 0) {
                 IAEItemStack missingStack = needed.copy();
+                missingStack.setStackSize(missing);
                 missingItems.add(missingStack);
             }
         }
@@ -103,7 +104,7 @@ public class CraftingCallback implements ICraftingCallback {
 
         access.signal(
             ModuleAppEng.CC_EVENT_STATE_CHANGED,
-            converter.fromJava(this.requestedStack),
+            requestedStack,
             "missing_items",
             converter.fromJava(missingItems));
     }

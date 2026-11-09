@@ -91,9 +91,10 @@ public class ModuleVanilla implements IIntegrationModule {
         List<Map<String, Object>> response = Lists.newArrayList();
         for (int i = 0; i < ench.tagCount(); ++i) {
             NBTTagCompound enchTag = ench.getCompoundTagAt(i);
-            short id = enchTag.getShort("id");
-            short lvl = enchTag.getShort("lvl");
+            final short id = enchTag.getShort("id");
+            final short lvl = enchTag.getShort("lvl");
 
+            if (id < 0 || id >= Enchantment.enchantmentsList.length) continue;
             final Enchantment enchantment = Enchantment.enchantmentsList[id];
             if (enchantment != null) {
                 Map<String, Object> entry = Maps.newHashMap();

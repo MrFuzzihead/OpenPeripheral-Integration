@@ -8,8 +8,8 @@ Test/build facts at the time of writing:
 
 | Item | Value |
 |------|-------|
-| `./gradlew test` | **75 tests / 7 classes, all green** |
-| JaCoCo | **21.3 % line** (508/2390), **18.6 % branch** (121/650) |
+| `./gradlew test` | **80 tests / 7 classes, all green** |
+| JaCoCo | **21.3 % line** (510/2391), **19.3 % branch** (126/652) |
 | Coverage floor enforced by `check` | 18 % line / 10 % branch |
 | `./gradlew check` | green (compile, tests, JaCoCo verification, Spotless, Checkstyle) |
 | `./gradlew gameTestServer` | green — `GAMETEST_INT_ADAPTERS_OK`, `GAMETEST_INT_LUA_OK`, `OPENPERIPHERAL_INTEGRATION_GAMETEST_OK` |
@@ -58,7 +58,7 @@ New/changed files:
 |---|---|
 | `dependencies.gradle` | `testImplementation` JUnit 4.13.2, Mockito 4.11.0 + `mockito-inline` |
 | `addon.gradle.kts` | JaCoCo, Java 8 test toolchain, `gameTest` source set, `gameTestServer`, coverage floor |
-| `src/test/java/openperipheral/integration/**` | 75 headless tests across 7 classes |
+| `src/test/java/openperipheral/integration/**` | 80 headless tests across 7 classes |
 | `src/gameTest/java/openperipheral/integration/gametest/IntegrationGameTestMod.java` | non-shipped test mod: real provider, fake CC access/context, real ComputerCraft computer |
 | `src/gameTest/resources/openperipheralintegration/lua/peripheral_tests.lua` | Lua suite shared by the headless test and the in-game test |
 | `.github/workflows/game-test.yml` | CI job that boots a dedicated server and greps the markers |
@@ -66,7 +66,7 @@ New/changed files:
 Commands:
 
 ```sh
-./gradlew test                        # 75 JUnit tests (Java 8)
+./gradlew test                        # 80 JUnit tests (Java 8)
 ./gradlew jacocoTestReport            # build/reports/jacoco/test/html
 ./gradlew jacocoTestCoverageVerification
 ./gradlew check                       # tests + coverage floor + Spotless + Checkstyle
@@ -92,9 +92,24 @@ Coverage gaps are listed in §8.
 
 ---
 
+## 0. Batch 1 — fixes landed
+
+- **3.1** duplicate `ModuleThaumcraft` registration removed.
+- **3.2** CoFH `AdapterInventoryHandler` methods are public and annotated with `@ScriptCallable`.
+- **3.3** AE2 missing-items payload now carries the actual missing amount; the requested stack is no
+  longer double-converted.
+- **3.4** `getRequestedJobs()` returns an empty set instead of `null` (the `injectCraftedItems` semantics
+  are still open).
+- **3.5** out-of-range/negative enchantment ids are skipped instead of throwing `AIOOBE`.
+- **3.6** `AdapterSign.setText` accepts exactly four lines; **§4.1** `setLines` now truncates to 15 chars.
+- **3.7** note-block pitch is wrapped with `Math.floorMod` and only written after the Forge hook approves.
+- Tests: **80** (was 75), coverage **21.3 % line / 19.3 % branch**.
+
+---
+
 ## 3. Critical / high-severity bugs
 
-### 3.1 Thaumcraft integration module is registered twice — P0
+### 3.1 Thaumcraft integration module is registered twice — P0 ✅
 
 `OpenPeripheralIntegration.preInit` contains the `thaumcraft-mod` check twice:
 
@@ -107,7 +122,7 @@ Coverage gaps are listed in §8.
 Depending on how the OpenPeripheral registry deduplicates, this produces duplicate peripheral methods,
 duplicate documentation entries, or registry warnings. Delete the second block.
 
-### 3.2 CoFH inventory adapter exposes no methods — P0
+### 3.2 CoFH inventory adapter exposes no methods — P0 ✅
 
 `cofh/inventory/AdapterInventoryHandler.java`: all four methods are package-private and none carries
 `@ScriptCallable`:
@@ -125,7 +140,7 @@ silently a no-op. Make the methods public and annotate them
 (`getInventoryContents` → `ReturnType.TABLE`, `getSizeInventory` → `NUMBER`, `isEmpty`/`isFull` →
 `BOOLEAN`), or delete the module if CoFH’s inventory API is considered obsolete.
 
-### 3.3 AE2 crafting reports full amounts as “missing” — P1
+### 3.3 AE2 crafting reports full amounts as “missing” — P1 ✅
 
 `appeng/CraftingCallback.java:95`: `missingStack` is copied from `needed` but its size is never set to
 `missing`:
@@ -140,19 +155,19 @@ if (missing > 0) {
 }
 ```
 
-The `"missing_items"` event therefore over-reports. Add
-`missingStack.setStackSize(missing);` before adding.
+The `"missing_items"` event therefore over-reports. **Fixed:** `missingStack.setStackSize(missing);` is
+applied before adding.
 
-Also: `converter.fromJava(this.requestedStack)` is called on an object that is **already converted** in
-the constructor (`requestedStack = converter.fromJava(requestedStack)`), so the signal payload is
-double-converted. Send `requestedStack` directly.
+Also: `converter.fromJava(this.requestedStack)` was called on an object that is **already converted** in
+the constructor (`requestedStack = converter.fromJava(requestedStack)`), so the signal payload was
+double-converted. **Fixed:** send `requestedStack` directly.
 
-### 3.4 AE2 crafting request contract is violated — P1 (verify)
+### 3.4 AE2 crafting request contract is violated — P1 (partially fixed ✅)
 
 `appeng/CraftingRequester.java`:
 
-- `getRequestedJobs()` returns `null`; AE2 iterates this set when a link is cancelled/invalidated. Return
-  `ImmutableSet.of()`.
+- `getRequestedJobs()` returned `null`; AE2 iterates this set when a link is cancelled/invalidated.
+  **Fixed:** returns `ImmutableSet.of()`.
 - `injectCraftedItems(...)` returns `items`, i.e. “none of the crafted items were accepted”. The class
   comment claims crafted items go straight back into the AE network, but the contract for the return
   value is *the remainder that could not be injected*. As written, finished crafts stay in the crafting
@@ -160,14 +175,14 @@ double-converted. Send `requestedStack` directly.
   remainder (or `null`), or drop the claim from the comment. Confirm against the AE2 version pinned in
   `dependencies.gradle`.
 
-### 3.5 `ModuleVanilla.listEnchantments` throws on out-of-range enchantment ids — P1
+### 3.5 `ModuleVanilla.listEnchantments` throws on out-of-range enchantment ids — P1 ✅
 
 `ModuleVanilla.java:97` indexes `Enchantment.enchantmentsList[id]` without a bounds check. A corrupted
 or modded NBT tag with a negative/large id crashes the metadata call with `AIOOBE` (reproduced in the
 test suite while writing this review). Guard with `id >= 0 && id < Enchantment.enchantmentsList.length`.
 The same array can contain `null` entries; that case is already handled.
 
-### 3.6 `AdapterSign.setText` rejects exactly four lines — P1
+### 3.6 `AdapterSign.setText` rejects exactly four lines — P1 ✅
 
 `AdapterSign.java:80`:
 
@@ -179,7 +194,7 @@ Preconditions.checkArgument(newLength >= 0 && newLength < maxLength, "Value must
 rejected. The lower bound is also wrong (`>= 0` allows 0 lines). Use
 `newLength >= 1 && newLength <= maxLength`.
 
-### 3.7 `AdapterNoteBlock.setPitch` mutates before the Forge hook can veto — P1
+### 3.7 `AdapterNoteBlock.setPitch` mutates before the Forge hook can veto — P1 ✅
 
 `AdapterNoteBlock.java:40` writes the note **before** `ForgeHooks.onNoteChange(...)` and returns `false`
 without restoring the old value. A mod vetoing the change leaves the tile entity desynchronised from
@@ -195,7 +210,7 @@ the client (the hook exists precisely to allow this). Also:
 
 | # | Location | Issue |
 |---|---|---|
-| 1 | `AdapterSign.setLines` | Does not truncate lines to 15 chars (unlike `setLine`); a long string overflows the client sign renderer. It also does not fire `ForgeHooks` (it does not need to) and treats `null` elements as empty only via `Strings.nullToEmpty`. |
+| 1 | `AdapterSign.setLines` ✅ | ~~Does not truncate lines to 15 chars~~ (fixed: now routes through `setLine`); it did not need `ForgeHooks` because it does not change the note. |
 | 2 | `AdapterInventory.java:105,118,131`, `condenseItems` | `InventoryUtils.getInventory(target)` is dereferenced without a null check in `getStackInSlot`, `getAllStacks`, `destroyStack` and `condenseItems`, while `getInventoryName`/`getInventorySize` do check. `InventoryUtils.getInventory(IInventory)` currently returns the input for non-chests (and a large-chest wrapper for chests), so this is a defensive-consistency issue rather than a proven crash — but the split invites a future NPE. |
 | 3 | `AdapterInventory.swapStacks` | The second `@Arg` is named `fromDirection` (copy/paste); generated Lua docs are wrong for `toDirection`. |
 | 4 | `AdapterInventory.getStackInSlot` vs `getAllStacks` | Defaults are inconsistent: `getStackInSlot` returns a raw `ItemStack` unless `proxy == TRUE`, `getAllStacks` returns proxies unless `proxy == FALSE`. Document or align. |
@@ -398,7 +413,7 @@ Highest-value additions:
 ```text
 ./gradlew updateDependencies        # then manually corrected (AE2 1099, OpenModsLib 0.10.15)
 ./gradlew spotlessApply
-./gradlew test                      # 75 tests, green
+./gradlew test                      # 80 tests, green
 ./gradlew jacocoTestReport          # 21.3 % line, 18.6 % branch
 ./gradlew check                     # green
 ./gradlew gameTestServer            # green (adapter + real Lua markers)

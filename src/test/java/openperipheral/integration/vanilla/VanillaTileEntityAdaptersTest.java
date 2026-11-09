@@ -89,12 +89,55 @@ public class VanillaTileEntityAdaptersTest {
         verify(world, org.mockito.Mockito.times(3)).markBlockForUpdate(1, 2, 3);
     }
 
+    @Test
+    public void signTextAcceptsFourLines() {
+        final TileEntitySign sign = new TileEntitySign();
+        sign.setWorldObj(world());
+        sign.signText = new String[] { "", "", "", "" };
+
+        final AdapterSign adapter = new AdapterSign();
+        adapter.setText(sign, "one\ntwo\nthree\nfour");
+
+        Assert.assertArrayEquals(new String[] { "one", "two", "three", "four" }, sign.signText);
+        Assert.assertEquals("one\ntwo\nthree\nfour", adapter.getText(sign));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void signTextRejectsMoreThanFourLines() {
+        final TileEntitySign sign = new TileEntitySign();
+        sign.setWorldObj(world());
+        sign.signText = new String[] { "", "", "", "" };
+        new AdapterSign().setText(sign, "a\nb\nc\nd\ne");
+    }
+
+    @Test
+    public void setLinesTruncatesToTheVanillaLimit() {
+        final TileEntitySign sign = new TileEntitySign();
+        sign.setWorldObj(world());
+        sign.signText = new String[] { "", "", "", "" };
+
+        new AdapterSign().setLines(sign, new String[] { "0123456789abcdefghij", "short" });
+
+        Assert.assertEquals("0123456789abcde", sign.signText[0]);
+        Assert.assertEquals("short", sign.signText[1]);
+    }
+
     @Test(expected = IndexOutOfBoundsException.class)
     public void signLineIndexIsChecked() {
         final TileEntitySign sign = new TileEntitySign();
         sign.setWorldObj(world());
         sign.signText = new String[] { "", "", "", "" };
         new AdapterSign().getLine(sign, Index.fromJava(4, 0));
+    }
+
+    @Test
+    public void notePitchIsNormalisedToTheValidRange() {
+        Assert.assertEquals(0, AdapterNoteBlock.normalizePitch(0));
+        Assert.assertEquals(24, AdapterNoteBlock.normalizePitch(24));
+        Assert.assertEquals(0, AdapterNoteBlock.normalizePitch(25));
+        Assert.assertEquals(5, AdapterNoteBlock.normalizePitch(30));
+        Assert.assertEquals(24, AdapterNoteBlock.normalizePitch(-1));
+        Assert.assertEquals(0, AdapterNoteBlock.normalizePitch(-25));
     }
 
     @Test

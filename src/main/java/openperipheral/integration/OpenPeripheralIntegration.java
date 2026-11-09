@@ -144,7 +144,6 @@ public class OpenPeripheralIntegration {
                 Integration.addModule(new ModuleMystcraftV1());
             }
         }
-        if (checkConfig(config, "thaumcraft-mod")) Integration.addModule(new ModuleThaumcraft());
         if (checkConfig(config, "tmechworks-mod")) Integration.addModule(new ModuleTMechworks());
         if (checkConfig(config, "thermalexpansion-mod")) Integration.addModule(new ModuleThermalExpansion());
         if (checkConfig(config, "ae2-mod")) Integration.addModule(new ModuleAppEng());
