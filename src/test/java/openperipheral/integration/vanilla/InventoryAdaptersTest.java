@@ -378,6 +378,25 @@ public class InventoryAdaptersTest {
     }
 
     @Test
+    public void worldInventorySupportsPlainTileEntityTargets() {
+        final World world = mock(World.class);
+        final FakeTileInventory target = new FakeTileInventory();
+        target.setWorldObj(world);
+        target.xCoord = 5;
+        target.yCoord = 6;
+        target.zCoord = 7;
+        target.setInventorySlotContents(0, stack(1, 0));
+
+        final FakeTileInventory other = new FakeTileInventory();
+        when(world.getTileEntity(6, 6, 7)).thenReturn(other);
+
+        final int moved = new AdapterWorldInventory()
+            .pushItem(target, ForgeDirection.EAST, Index.fromJava(0, 0), 1, null);
+        Assert.assertEquals(1, moved);
+        Assert.assertEquals(1, other.getStackInSlot(0).stackSize);
+    }
+
+    @Test
     public void worldInventoryValidatesMissingNeighbour() {
         final World world = mock(World.class);
         final PosInventory target = new PosInventory(world, 5, 6, 7, 3);

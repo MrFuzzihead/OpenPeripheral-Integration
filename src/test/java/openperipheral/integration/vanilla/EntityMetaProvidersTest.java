@@ -1,5 +1,6 @@
 package openperipheral.integration.vanilla;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -9,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.boss.IBossDisplayData;
 import net.minecraft.entity.item.EntityItem;
@@ -26,19 +28,41 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ChatComponentText;
+import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
 
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
 import com.mojang.authlib.GameProfile;
+
+import openperipheral.api.meta.IItemStackPartialMetaBuilder;
+import openperipheral.api.meta.IMetaProviderProxy;
+import openperipheral.integration.OpcAccess;
 
 /**
  * Entity metadata providers, driven by Mockito mocks. Constructing real entities needs a bootstrapped
  * world, but the providers only read a handful of getters, so mocks cover every branch cheaply.
  */
 public class EntityMetaProvidersTest {
+
+    private IItemStackPartialMetaBuilder originalMetaBuilder;
+
+    @Before
+    public void installMetaBuilder() {
+        originalMetaBuilder = OpcAccess.itemStackMetaBuilder;
+        OpcAccess.itemStackMetaBuilder = mock(IItemStackPartialMetaBuilder.class);
+        when(OpcAccess.itemStackMetaBuilder.createProxy(any(ItemStack.class)))
+            .thenReturn(mock(IMetaProviderProxy.class));
+    }
+
+    @After
+    public void restoreMetaBuilder() {
+        OpcAccess.itemStackMetaBuilder = originalMetaBuilder;
+    }
 
     private static void setField(Object target, String name, Object value) throws Exception {
         Class<?> type = target.getClass();
@@ -189,6 +213,69 @@ public class EntityMetaProvidersTest {
         Assert.assertEquals(Boolean.TRUE, map.get("horseTame"));
         Assert.assertEquals(Boolean.FALSE, map.get("chestedHorse"));
         Assert.assertFalse(map.containsKey("chest"));
+    }
+
+    @Test
+    public void horseMetadataIncludesChestWhenChested() throws Exception {
+        final EntityHorse horse = mock(EntityHorse.class);
+        when(horse.isChested()).thenReturn(true);
+
+        final net.minecraft.inventory.AnimalChest chest = mock(net.minecraft.inventory.AnimalChest.class);
+        when(chest.getSizeInventory()).thenReturn(1);
+        when(chest.getStackInSlot(0)).thenReturn(new ItemStack(new Item(), 1));
+        setField(horse, "horseChest", chest);
+
+        @SuppressWarnings("unchecked")
+        final Map<String, Object> map = (Map<String, Object>) new EntityHorseMetaProvider().getMeta(horse, null);
+        Assert.assertEquals(Boolean.TRUE, map.get("chestedHorse"));
+        Assert.assertNotNull("Chest inventory was not wrapped", map.get("chest"));
+    }
+
+    @Test
+    public void livingMetadataReportsBlockAndEntityRayHits() throws Exception {
+        final EntityLivingBase living = mock(EntityLivingBase.class);
+        final World world = mock(World.class);
+        setField(living, "worldObj", world);
+        when(living.getActivePotionEffects()).thenReturn(Collections.emptyList());
+        when(living.getHealth()).thenReturn(20.0f);
+        when(living.getMaxHealth()).thenReturn(20.0f);
+        when(living.getLook(1.0f)).thenReturn(Vec3.createVectorHelper(0, 0, 1));
+
+        final MovingObjectPosition blockHit = new MovingObjectPosition(4, 5, 6, 1, Vec3.createVectorHelper(4, 5, 6));
+        when(world.rayTraceBlocks(any(Vec3.class), any(Vec3.class))).thenReturn(blockHit);
+
+        final EntityLivingMetaProvider provider = new EntityLivingMetaProvider();
+        @SuppressWarnings("unchecked")
+        final Map<String, Object> absolute = (Map<String, Object>) provider.getMeta(living, null);
+        @SuppressWarnings("unchecked")
+        final Map<String, Object> absoluteHit = (Map<String, Object>) absolute.get("lookingAt");
+        Assert.assertEquals("block", absoluteHit.get("type"));
+        @SuppressWarnings("unchecked")
+        final Map<String, Object> absolutePos = (Map<String, Object>) absoluteHit.get("position");
+        Assert.assertEquals(4, absolutePos.get("x"));
+        Assert.assertEquals(5, absolutePos.get("y"));
+        Assert.assertEquals(6, absolutePos.get("z"));
+
+        @SuppressWarnings("unchecked")
+        final Map<String, Object> relative = (Map<String, Object>) provider
+            .getMeta(living, Vec3.createVectorHelper(1, 2, 3));
+        @SuppressWarnings("unchecked")
+        final Map<String, Object> relativePos = (Map<String, Object>) ((Map<String, Object>) relative.get("lookingAt"))
+            .get("position");
+        Assert.assertEquals(3.0, ((Number) relativePos.get("x")).doubleValue(), 0.0001);
+        Assert.assertEquals(3.0, ((Number) relativePos.get("y")).doubleValue(), 0.0001);
+        Assert.assertEquals(3.0, ((Number) relativePos.get("z")).doubleValue(), 0.0001);
+
+        final Entity target = mock(Entity.class);
+        when(target.getEntityId()).thenReturn(42);
+        when(world.rayTraceBlocks(any(Vec3.class), any(Vec3.class))).thenReturn(new MovingObjectPosition(target));
+
+        @SuppressWarnings("unchecked")
+        final Map<String, Object> entityMap = (Map<String, Object>) provider.getMeta(living, null);
+        @SuppressWarnings("unchecked")
+        final Map<String, Object> entityHit = (Map<String, Object>) entityMap.get("lookingAt");
+        Assert.assertEquals("entity", entityHit.get("type"));
+        Assert.assertEquals(42, entityHit.get("id"));
     }
 
     @Test

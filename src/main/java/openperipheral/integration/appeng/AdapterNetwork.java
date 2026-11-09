@@ -48,13 +48,19 @@ public class AdapterNetwork extends AdapterGridBase {
     public List<?> getAvailableItems(IGridHost host, @Env(Constants.ARG_CONVERTER) IConverter converter,
         @Optionals @Arg(
             name = "details",
-            description = "Format of stored items details (defalt: none)") ItemDetails format) {
+            description = "Format of stored items details (default: none)") ItemDetails format,
+        @Arg(
+            name = "limit",
+            description = "Maximum number of entries to return. Zero or negative returns everything") Integer limit) {
         IStorageGrid storageGrid = getStorageGrid(host);
         final IItemList<IAEItemStack> storageList = storageGrid.getItemInventory()
             .getStorageList();
 
+        final int max = (limit == null || limit <= 0) ? Integer.MAX_VALUE : limit;
         List<Object> result = Lists.newArrayList();
         for (IAEItemStack stack : storageList) {
+            if (result.size() >= max) break;
+
             final Object converted = converter.fromJava(stack);
             if (!(converted instanceof Map)) {
                 throw new IllegalStateException("Converter returned a non-table for AE stack " + stack);
@@ -71,6 +77,15 @@ public class AdapterNetwork extends AdapterGridBase {
         }
 
         return result;
+    }
+
+    @ScriptCallable(
+        description = "Get the number of distinct stored and craftable item types in the network.",
+        returnTypes = ReturnType.NUMBER)
+    public int getAvailableItemCount(IGridHost host) {
+        return getStorageGrid(host).getItemInventory()
+            .getStorageList()
+            .size();
     }
 
     @ScriptCallable(

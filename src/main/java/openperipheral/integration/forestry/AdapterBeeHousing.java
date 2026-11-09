@@ -1,6 +1,8 @@
 package openperipheral.integration.forestry;
 
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -37,6 +39,45 @@ public class AdapterBeeHousing implements IPeripheralAdapter {
     private static final String MUTATION_CHANCE = "chance";
     private static final String ALLELE_2 = "allele2";
     private static final String ALLELE_1 = "allele1";
+
+    // Forestry rebuilds the mutation/genome lists on every call; they are stable for a given species
+    // root, so cache them (and the derived offspring species) for the lifetime of the server.
+    private ISpeciesRoot cachedRoot;
+    private boolean cacheValid;
+    private List<IMutation> cachedMutations = Collections.emptyList();
+    private List<IIndividual> cachedTemplates = Collections.emptyList();
+    private final java.util.Map<IMutation, IAlleleSpecies> offspringCache = new IdentityHashMap<IMutation, IAlleleSpecies>();
+
+    private synchronized void refreshIfNeeded(ISpeciesRoot beeRoot) {
+        if (cacheValid && beeRoot == cachedRoot) return;
+
+        cachedRoot = beeRoot;
+        cachedMutations = Lists.newArrayList(beeRoot.getMutations(false));
+        cachedTemplates = Lists.newArrayList(beeRoot.getIndividualTemplates());
+        offspringCache.clear();
+        cacheValid = true;
+    }
+
+    private List<IMutation> getMutations(ISpeciesRoot beeRoot) {
+        refreshIfNeeded(beeRoot);
+        return cachedMutations;
+    }
+
+    private List<IIndividual> getTemplates(ISpeciesRoot beeRoot) {
+        refreshIfNeeded(beeRoot);
+        return cachedTemplates;
+    }
+
+    private IAlleleSpecies getOffspringSpecies(IMutation mutation) {
+        IAlleleSpecies result = offspringCache.get(mutation);
+        if (result == null) {
+            final IGenome offspringGenome = mutation.getRoot()
+                .templateAsGenome(mutation.getTemplate());
+            result = (IAlleleSpecies) offspringGenome.getActiveAllele(EnumBeeChromosome.SPECIES);
+            offspringCache.put(mutation, result);
+        }
+        return result;
+    }
 
     @Override
     public Class<?> getTargetClass() {
@@ -82,7 +123,7 @@ public class AdapterBeeHousing implements IPeripheralAdapter {
 
         List<Map<String, Object>> result = Lists.newArrayList();
 
-        for (IMutation mutation : beeRoot.getMutations(false)) {
+        for (IMutation mutation : getMutations(beeRoot)) {
             if (mutation.isSecret() && !Config.showHiddenMutations) continue;
             final Map<String, Object> mutationMap = Maps.newHashMap();
             try {
@@ -127,14 +168,14 @@ public class AdapterBeeHousing implements IPeripheralAdapter {
         final Set<IAlleleSpecies> allSpecies = Sets.newTreeSet(alleleCompatator);
 
         // approach 1: parents and children of all mutations
-        for (IMutation mutation : beeRoot.getMutations(false)) {
+        for (IMutation mutation : getMutations(beeRoot)) {
             allSpecies.add(mutation.getAllele0());
             allSpecies.add(mutation.getAllele1());
             allSpecies.add(getOffspringSpecies(mutation));
         }
 
         // approach 2: template bees
-        for (IIndividual individual : beeRoot.getIndividualTemplates()) {
+        for (IIndividual individual : getTemplates(beeRoot)) {
             final IGenome genome = individual.getGenome();
             allSpecies.add(genome.getPrimary()); // secondary is same as primary
         }
@@ -159,7 +200,7 @@ public class AdapterBeeHousing implements IPeripheralAdapter {
         List<Map<String, Object>> result = Lists.newArrayList();
         childType = childType.toLowerCase(Locale.ENGLISH);
 
-        for (IMutation mutation : beeRoot.getMutations(false)) {
+        for (IMutation mutation : getMutations(beeRoot)) {
             if (mutation.isSecret() && !Config.showHiddenMutations) continue;
             final IAlleleSpecies species = getOffspringSpecies(mutation);
 
@@ -174,14 +215,14 @@ public class AdapterBeeHousing implements IPeripheralAdapter {
         returnTypes = ReturnType.TABLE,
         description = "Get possible mutations that can be created with given bee")
     public List<Map<String, Object>> getBeeChildren(IBeeHousing housing,
-        @Arg(name = "parentYpe", description = "The type of bee you want the children for") String childType) {
+        @Arg(name = "parentType", description = "The type of bee you want the children for") String childType) {
         ISpeciesRoot beeRoot = AlleleManager.alleleRegistry.getSpeciesRoot("rootBees");
         if (beeRoot == null) return null;
 
         List<Map<String, Object>> result = Lists.newArrayList();
         childType = childType.toLowerCase(Locale.ENGLISH);
 
-        for (IMutation mutation : beeRoot.getMutations(false)) {
+        for (IMutation mutation : getMutations(beeRoot)) {
             if (mutation.isSecret() && !Config.showHiddenMutations) continue;
 
             if (alleleNameMatches(mutation.getAllele0(), childType)
@@ -200,12 +241,6 @@ public class AdapterBeeHousing implements IPeripheralAdapter {
         return localizedName.equals(childType) || uid.equals(childType);
     }
 
-    private static IAlleleSpecies getOffspringSpecies(IMutation mutation) {
-        final IGenome offspringGenome = mutation.getRoot()
-            .templateAsGenome(mutation.getTemplate());
-        return (IAlleleSpecies) offspringGenome.getActiveAllele(EnumBeeChromosome.SPECIES);
-    }
-
     private static Map<String, String> serializeAllele(IAllele species) {
         Map<String, String> result = Maps.newHashMap();
         result.put("name", species.getName());
@@ -213,7 +248,7 @@ public class AdapterBeeHousing implements IPeripheralAdapter {
         return result;
     }
 
-    private static Map<String, Object> serializeMutation(IMutation mutation, boolean addOffspring) {
+    private Map<String, Object> serializeMutation(IMutation mutation, boolean addOffspring) {
         Map<String, Object> parentMap = Maps.newHashMap();
 
         IAlleleSpecies allele1 = mutation.getAllele0();

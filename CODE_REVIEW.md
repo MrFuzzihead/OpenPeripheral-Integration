@@ -8,9 +8,9 @@ Test/build facts at the time of writing:
 
 | Item | Value |
 |------|-------|
-| `./gradlew test` | **92 tests / 9 classes, all green** |
-| JaCoCo | **24.3 % line** (593/2440), **22.8 % branch** (149/654) |
-| Coverage floor enforced by `check` | 22 % line / 18 % branch |
+| `./gradlew test` | **95 tests / 9 classes, all green** |
+| JaCoCo | **25.2 % line** (619/2456), **23.7 % branch** (158/666) |
+| Coverage floor enforced by `check` | 24 % line / 21 % branch |
 | `./gradlew check` | green (compile, tests, JaCoCo verification, Spotless, Checkstyle) |
 | `./gradlew gameTestServer` | green — `GAMETEST_INT_ADAPTERS_OK`, `GAMETEST_INT_LUA_OK`, `OPENPERIPHERAL_INTEGRATION_GAMETEST_OK` |
 | Unit-test JVM | Java 8 toolchain (same bytecode target the mod ships) |
@@ -58,7 +58,7 @@ New/changed files:
 |---|---|
 | `dependencies.gradle` | `testImplementation` JUnit 4.13.2, Mockito 4.11.0 + `mockito-inline` |
 | `addon.gradle.kts` | JaCoCo, Java 8 test toolchain, `gameTest` source set, `gameTestServer`, coverage floor |
-| `src/test/java/openperipheral/integration/**` | 92 headless tests across 9 classes |
+| `src/test/java/openperipheral/integration/**` | 95 headless tests across 9 classes |
 | `src/gameTest/java/openperipheral/integration/gametest/IntegrationGameTestMod.java` | non-shipped test mod: real provider, fake CC access/context, real ComputerCraft computer |
 | `src/gameTest/resources/openperipheralintegration/lua/peripheral_tests.lua` | Lua suite shared by the headless test and the in-game test |
 | `.github/workflows/game-test.yml` | CI job that boots a dedicated server and greps the markers |
@@ -66,7 +66,7 @@ New/changed files:
 Commands:
 
 ```sh
-./gradlew test                        # 92 JUnit tests (Java 8)
+./gradlew test                        # 95 JUnit tests (Java 8)
 ./gradlew jacocoTestReport            # build/reports/jacoco/test/html
 ./gradlew jacocoTestCoverageVerification
 ./gradlew check                       # tests + coverage floor + Spotless + Checkstyle
@@ -148,6 +148,23 @@ Coverage gaps are listed in §8.
 - **AdapterSecureTile.getOwner** advertises `OBJECT` instead of `STRING`.
 - **Electric machine** progress returns 0 (not 100 %) when the energy buffer is zero.
 - Tests: **92**, coverage **24.3 % line / 22.8 % branch**.
+
+---
+
+## 0d. Batch 4 — performance and duplicated adapter code
+
+- **Forestry** (`AdapterBeeHousing`): mutations, individual templates and derived offspring species are
+  cached per species root instead of being rebuilt on every call; the `parentYpe` argument-name typo was
+  corrected (positional Lua calls are unaffected).
+- **AE2** (`AdapterNetwork`): `getAvailableItems` accepts an optional `limit` and the new
+  `getAvailableItemCount()` returns the type count without converting the whole network.
+- **Railcraft**: the four boolean trigger adapters share `BooleanReflectionAdapter`, removing four copies
+  of the same reflection wiring.
+- **Inventory**: `AdapterWorldInventory` uses a named `TileEntityPosProvider` instead of an anonymous
+  class per call.
+- **StorageCellMetaProvider** was intentionally *not* cached: cell contents (free bytes, stored types)
+  change live, so a cache would serve stale metadata.
+- Tests: **95**, coverage **25.2 % line / 23.7 % branch**; floor raised to 24 % / 21 %.
 
 ---
 
@@ -285,7 +302,7 @@ the client (the hook exists precisely to allow this). Also:
 | 31 ✅ | `Mystcraft v2 AdapterWritingDesk.pushNotebookPage` | `if (remains >= 0)` is always true; a fully inserted page calls `addPage` with a 0-size copy. Use `> 0`. |
 | 32 ✅ | `Mystcraft v2 createInventoryWrapper` | Throws `IllegalStateException` (`Preconditions.checkState`) for an empty/invalid slot; every other adapter reports `IllegalArgumentException`, which OpenPeripheral turns into a Lua error. Use `checkArgument`. |
 | 33 ✅ | `MystcraftAccess` | Log messages say “Mystraft” and “unavalable”; the catch-all `Exception` hides API bugs. |
-| 34 | `AdapterBeeHousing` | `getBeeChildren` exposes the misspelled `parentYpe` argument name (Lua docs), `alleleCompatator` is misspelled, `getBeeBreedingData` aborts the whole list with a `RuntimeException` if one mutation is malformed (skip + log instead), and `getMutations(false)` is fetched repeatedly. |
+| 34 | `AdapterBeeHousing` | `parentYpe` argument name and the repeated `getMutations(false)` calls are fixed ✅ (batch 4); `alleleCompatator` is still misspelled, and `getBeeBreedingData` still aborts the whole list with a `RuntimeException` if one mutation is malformed (skip + log instead). |
 | 35 | `ConverterIIndividual` | `conventers` is misspelled; `convertAllele` returns the literal `"missing"` for a null allele, which is indistinguishable from a legitimate species name; `describeIndividual` calls `hasEffect()` on every `IIndividual` (verify that all Forestry implementations support it). |
 | 36 | `OpenPeripheralIntegration` config key `buildcraft-api-tilenentity` | Typo in a persisted config key. Renaming would orphan existing configs; keep reading the old key and optionally migrate to `buildcraft-api-tileentity` (log migration). |
 | 37 | `ApiIntegrationModule.name()` / `ModIntegrationModule.name()` | Both produce “… (API) CC integration module” / “(mod) CC integration module” even for AE2/IC2/Railcraft — “CC” is wrong for non-ComputerCraft integrations and makes logs confusing. |
@@ -297,22 +314,22 @@ the client (the hook exists precisely to allow this). Also:
 
 ## 5. Optimizations
 
-1. **Cache adapter-derived objects**
-   - `AdapterWorldInventory`: static `IWorldPosProvider` wrapper instead of an anonymous class per call.
-   - `AdapterBeeHousing`: cache `ISpeciesRoot#getMutations(false)` and the computed species set per
-     species root, invalidating on world load; currently `listAllSpecies`/`getBeeParents`/`getBeeChildren`
-     rebuild the whole mutation/genome list on every call.
+1. **Cache adapter-derived objects** ✅ (batch 4)
+   - `AdapterWorldInventory` uses a named `TileEntityPosProvider`.
+   - `AdapterBeeHousing` caches mutations, templates and offspring species per species root. The filtered
+     species list is still rebuilt per call so the on-line config toggles keep working.
 2. **Avoid duplicate work**
-   - `BurnTimeMetaProvider` (see §4.8).
+   - `BurnTimeMetaProvider` (see §4.8): the provider API calls `canApply` and `getMeta` separately, so
+     each lookup legitimately computes the fuel value twice; merging them would require an API change.
    - `AdapterTileSteamTurbine` calls `getMaxDamage()` once per item; cache in a local.
    - `AdapterBeeHousing.getOffspringSpecies` calls `templateAsGenome` for every mutation; compute once
      per mutation and reuse across the three public methods.
 3. **Lazy/limited results**
-   - `AdapterNetwork.getAvailableItems` materialises every AE stack into a Lua table. Add an optional
-     limit/offset (or a `getAvailableItemCount`) so a 10k-type network does not blow up the computer’s
-     Lua memory.
-   - `StorageCellMetaProvider` performs a full AE2 cell inventory scan on every item metadata lookup;
-     cache by `ItemStack` (NBT hash) or make it opt-in.
+   - `AdapterNetwork.getAvailableItems` accepts an optional `limit`, and `getAvailableItemCount()`
+     reports the size without converting everything. ✅ (batch 4)
+   - `StorageCellMetaProvider` performs a full AE2 cell inventory scan on every item metadata lookup.
+     **Deliberately not cached** (batch 4): a cell's free bytes/stored types change as the network does,
+     so a cache would be stale; the scan is the price of accurate metadata.
 4. **Async annotations** ✅ (batch 3)
    - `ModuleIC2Api` adapters (`AdapterEnergyConductor/Sink/Source/Storage`) were annotated
      `@Asynchronous` at class level although they are pure getters. Every Lua call allocates a main-thread
@@ -348,10 +365,9 @@ the client (the hook exists precisely to allow this). Also:
    `"powercrystals.minefactoryreloaded.tile.machine.*"`, `"thaumcraft.common.tiles.*"`, …) are spread over
    20+ classes. Put them in one `ReflectionTargets` class so a rename is a single edit and typos are
    reviewable.
-3. **Adapter base classes**: `AdapterEnergyProvider`/`AdapterEnergyReceiver`, the three
-   `AdapterEnder*Attuned` classes, and the four `AdapterHas*/Needs*` Railcraft adapters are near-identical.
-   Extract small bases (`AbstractEnergyAdapter`, `AbstractEnderAttunedAdapter`,
-   `BooleanReflectionAdapter`) to cut ~400 lines and remove copy/paste bugs.
+3. **Adapter base classes**: the four Railcraft `AdapterHas*/Needs*` adapters now share
+   `BooleanReflectionAdapter` ✅ (batch 4). `AdapterEnergyProvider`/`AdapterEnergyReceiver` and the three
+   `AdapterEnder*Attuned` classes are still near-identical and remain a candidate for extraction.
 4. **MFR/Railcraft reflection adapters** are ~15 classes of the same getter/setter pattern. A tiny
    `PropertyReflection` helper (`get`/`set` method name + type) would make them data-driven.
 5. **Fingerprint type** ✅ (batch 3): `ItemFingerprint` now has validated ids and `equals`/`hashCode`.
@@ -451,7 +467,7 @@ Highest-value additions:
 ```text
 ./gradlew updateDependencies        # then manually corrected (AE2 1099, OpenModsLib 0.10.15)
 ./gradlew spotlessApply
-./gradlew test                      # 92 tests, green
+./gradlew test                      # 95 tests, green
 ./gradlew jacocoTestReport          # 21.3 % line, 18.6 % branch
 ./gradlew check                     # green
 ./gradlew gameTestServer            # green (adapter + real Lua markers)
