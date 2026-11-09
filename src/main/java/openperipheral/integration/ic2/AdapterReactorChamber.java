@@ -22,7 +22,7 @@ public class AdapterReactorChamber implements IPeripheralAdapter {
 
     private static IReactor getReactor(IReactorChamber chamber) {
         IReactor reactor = chamber.getReactor();
-        Preconditions.checkNotNull(reactor, "No reactor");
+        Preconditions.checkArgument(reactor != null, "No reactor");
         return reactor;
     }
 

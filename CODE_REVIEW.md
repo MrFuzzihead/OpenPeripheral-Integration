@@ -8,9 +8,9 @@ Test/build facts at the time of writing:
 
 | Item | Value |
 |------|-------|
-| `./gradlew test` | **100 tests / 11 classes, all green** |
-| JaCoCo | **25.7 % line** (632/2457), **24.4 % branch** (164/672) |
-| Coverage floor enforced by `check` | 24 % line / 23 % branch |
+| `./gradlew test` | **144 tests / 17 classes, all green** |
+| JaCoCo | **43.6 % line** (1072/2457), **35.9 % branch** (245/682) |
+| Coverage floor enforced by `check` | 40 % line / 32 % branch |
 | `./gradlew check` | green (compile, tests, JaCoCo verification, Spotless, Checkstyle) |
 | `./gradlew gameTestServer` | green — `GAMETEST_INT_ADAPTERS_OK`, `GAMETEST_INT_LUA_OK`, `OPENPERIPHERAL_INTEGRATION_GAMETEST_OK` |
 | Unit-test JVM | Java 8 toolchain (same bytecode target the mod ships) |
@@ -56,9 +56,9 @@ New/changed files:
 
 | Path | Purpose |
 |---|---|
-| `dependencies.gradle` | `testImplementation` JUnit 4.13.2, Mockito 4.11.0 + `mockito-inline` |
+| `dependencies.gradle` | `testImplementation` JUnit 4.13.2, Mockito 4.11.0 + `mockito-inline`, plus the IC2/Railcraft/Thaumcraft/BuildCraft/Forestry/TMechworks dev jars |
 | `addon.gradle.kts` | JaCoCo, Java 8 test toolchain, `gameTest` source set, `gameTestServer`, coverage floor |
-| `src/test/java/openperipheral/integration/**` | 100 headless tests across 11 classes |
+| `src/test/java/openperipheral/integration/**` | 144 headless tests across 17 classes |
 | `src/gameTest/java/openperipheral/integration/gametest/IntegrationGameTestMod.java` | non-shipped test mod: real provider, fake CC access/context, real ComputerCraft computer |
 | `src/gameTest/resources/openperipheralintegration/lua/peripheral_tests.lua` | Lua suite shared by the headless test and the in-game test |
 | `.github/workflows/game-test.yml` | CI job that boots a dedicated server and greps the markers |
@@ -66,7 +66,7 @@ New/changed files:
 Commands:
 
 ```sh
-./gradlew test                        # 100 JUnit tests (Java 8)
+./gradlew test                        # 144 JUnit tests (Java 8)
 ./gradlew jacocoTestReport            # build/reports/jacoco/test/html
 ./gradlew jacocoTestCoverageVerification
 ./gradlew check                       # tests + coverage floor + Spotless + Checkstyle
@@ -180,6 +180,20 @@ Coverage gaps are listed in §8.
   `IEnderAttuned` base would move `@ScriptCallable` methods into inherited generics, which cannot be
   verified here because CoFH is absent from the test runtime). Both are documented rather than risked.
 - Tests: **100**, coverage **25.7 % line / 24.4 % branch**; floor raised to 24 % / 23 %.
+
+---
+
+## 0f. Batch 6 — test the reflection integrations
+
+- Added the IC2, Railcraft, Thaumcraft, BuildCraft, Forestry and Tinkers Mechworks dev jars as
+  `testImplementation` dependencies (the same pattern OpenPeripheral uses for OpenComputers).
+- New tests cover the interface-based adapters, the reflective internal-class adapters
+  (`TileEntityElectricMachine`, steam turbine, arcane bore, jars, etc.), the cart/facade/aspect metadata,
+  the forestry genome conversion and the module `load()` wiring for all six integrations.
+- Converted remaining `checkNotNull` validation to `checkArgument` where the failure is user input
+  (pipe/reactor/inventory/aspect), so Lua callers receive an `IllegalArgumentException` instead of an NPE;
+  removed the needless `throws Exception` on `AdapterDeconstructor`.
+- Tests: **144**, coverage **43.6 % line / 35.9 % branch**; floor raised to 40 % / 32 %.
 
 ---
 
@@ -420,8 +434,10 @@ the client (the hook exists precisely to allow this). Also:
 
 ## 8. Test-coverage gaps & recommended next tests
 
-Current coverage is deliberately concentrated on the vanilla layer, because all other integrations are
-`compileOnly` and therefore absent from the test runtime classpath.
+Batch 6 put IC2, Railcraft, Thaumcraft, BuildCraft, Forestry and Tinkers Mechworks on the test runtime
+classpath, so their adapters and module wiring are now covered. The remaining `compileOnly` integrations
+(AE2, CoFH, MFR, Mystcraft, EnderStorage, ThermalExpansion) still need either a `testImplementation`
+entry or a small extracted pure-logic helper.
 
 Highest-value additions:
 
@@ -429,10 +445,10 @@ Highest-value additions:
    `key → module` table from `preInit` and unit-test that keys are unique and cover every module class.
 2. **`/op_dump`-style config test**: construct `OpenPeripheralIntegration` config in a temp dir and assert
    every module key exists (no FML bus needed if the key list is separated from registration).
-3. **Reflection-target tests**: add a test-only `Class#forName` smoke test for each hard-coded target
-   string, asserting the class exists when the corresponding dependency is on the test classpath. Adding
-   `testImplementation` for IC2/MFR/Railcraft/Thaumcraft (as OpenPeripheral does for OpenComputers) would
-   let these run in CI and catch silent integration rot.
+3. **Reflection-target tests** ✅ (batch 6 for IC2/Railcraft/Thaumcraft/BuildCraft/Forestry/TMechworks):
+   the dev jars are on the test runtime classpath and the reflective adapters are instantiated. MFR, AE2,
+   CoFH, Mystcraft, EnderStorage and ThermalExpansion are still absent; add their dev jars (or extract
+   pure helpers) to extend the same coverage.
 4. **Pure-helper extraction tests**: `AdapterGridBase.compareToAEStack`, `ConverterIIndividual.describeIndividual`,
    `ConverterAspectList.aspectsToMap`, `SecurityUtils.canModify`, `TicketMetaProvider.canApply` — these are
    static/stateless and testable without the full mod if the helpers are moved out of the adapter classes
@@ -481,7 +497,7 @@ Highest-value additions:
 ```text
 ./gradlew updateDependencies        # then manually corrected (AE2 1099, OpenModsLib 0.10.15)
 ./gradlew spotlessApply
-./gradlew test                      # 100 tests, green
+./gradlew test                      # 144 tests, green
 ./gradlew jacocoTestReport          # 21.3 % line, 18.6 % branch
 ./gradlew check                     # green
 ./gradlew gameTestServer            # green (adapter + real Lua markers)

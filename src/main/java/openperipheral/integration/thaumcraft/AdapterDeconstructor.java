@@ -36,7 +36,7 @@ public class AdapterDeconstructor implements IPeripheralAdapter {
     }
 
     @ScriptCallable(returnTypes = ReturnType.BOOLEAN, description = "Does the Table have an aspect in it")
-    public boolean hasAspect(Object target) throws Exception {
+    public boolean hasAspect(Object target) {
         return ASPECT.get(target) != null;
     }
 
@@ -50,7 +50,7 @@ public class AdapterDeconstructor implements IPeripheralAdapter {
     }
 
     @ScriptCallable(returnTypes = ReturnType.STRING, description = "What aspect does the Table contain")
-    public String getAspect(Object target) throws Exception {
+    public String getAspect(Object target) {
         Aspect aspect = ASPECT.get(target);
         return aspect != null ? aspect.getTag() : "";
     }

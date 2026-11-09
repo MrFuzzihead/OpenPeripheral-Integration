@@ -55,7 +55,7 @@ public class AdapterAspectContainer implements IPeripheralAdapter {
         @Arg(name = "aspect", description = "Aspect to be checked") String aspectName) {
 
         Aspect aspect = Aspect.getAspect(aspectName.toLowerCase(Locale.ENGLISH));
-        Preconditions.checkNotNull(aspect, "Invalid aspect name");
+        Preconditions.checkArgument(aspect != null, "Invalid aspect name");
         AspectList list = container.getAspects();
         if (list == null) return 0;
         return list.getAmount(aspect);

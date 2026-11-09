@@ -36,7 +36,7 @@ public class AdapterInventory implements IPeripheralAdapter {
 
     private static IInventory requireInventory(IInventory target) {
         final IInventory inventory = InventoryUtils.getInventory(target);
-        Preconditions.checkNotNull(inventory, "Invalid inventory");
+        Preconditions.checkArgument(inventory != null, "Invalid inventory");
         return inventory;
     }
 

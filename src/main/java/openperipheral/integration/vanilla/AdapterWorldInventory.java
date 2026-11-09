@@ -96,7 +96,7 @@ public class AdapterWorldInventory implements IPeripheralAdapter, IAdapterWithCo
         final IWorldPosProvider provider = getProvider(target);
 
         final World world = provider.getWorld();
-        Preconditions.checkNotNull(world, "Inventory has no world");
+        Preconditions.checkArgument(world != null, "Inventory has no world");
         return world.getTileEntity(
             provider.getX() + direction.offsetX,
             provider.getY() + direction.offsetY,

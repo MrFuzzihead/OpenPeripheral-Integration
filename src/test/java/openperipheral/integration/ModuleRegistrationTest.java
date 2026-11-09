@@ -16,12 +16,25 @@ import openperipheral.api.adapter.IPeripheralAdapterRegistry;
 import openperipheral.api.adapter.IScriptType;
 import openperipheral.api.adapter.ITypeClassifier;
 import openperipheral.api.converter.IConverterManager;
+import openperipheral.api.converter.IOutboundTypeConverter;
 import openperipheral.api.converter.ITypeConverter;
 import openperipheral.api.meta.IEntityMetaProvider;
 import openperipheral.api.meta.IEntityPartialMetaBuilder;
 import openperipheral.api.meta.IItemStackMetaProvider;
 import openperipheral.api.meta.IItemStackPartialMetaBuilder;
+import openperipheral.integration.buildcraft.ModuleBuildCraftFacades;
+import openperipheral.integration.buildcraft.ModuleBuildCraftTile;
+import openperipheral.integration.buildcraft.ModuleBuildCraftTransport;
 import openperipheral.integration.computercraft.ModuleComputerCraft;
+import openperipheral.integration.forestry.ModuleForestry;
+import openperipheral.integration.ic2.ModuleIC2;
+import openperipheral.integration.ic2.ModuleIC2Api;
+import openperipheral.integration.railcraft.ModuleRailcraft;
+import openperipheral.integration.railcraft.ModuleRailcraftCarts;
+import openperipheral.integration.railcraft.ModuleRailcraftFuel;
+import openperipheral.integration.thaumcraft.ModuleThaumcraft;
+import openperipheral.integration.thaumcraft.ModuleThaumcraftApi;
+import openperipheral.integration.tmechworks.ModuleTMechworks;
 import openperipheral.integration.vanilla.ItemFingerprint;
 import openperipheral.integration.vanilla.ModuleVanilla;
 import openperipheral.integration.vanilla.ModuleVanillaInventory;
@@ -115,6 +128,69 @@ public class ModuleRegistrationTest {
     public void computerCraftModuleRegistersFourItemProviders() {
         new ModuleComputerCraft().load();
         verify(itemStackMetaBuilder, times(4)).register(any(IItemStackMetaProvider.class));
+    }
+
+    @Test
+    public void ic2ModulesRegisterTheirAdapters() {
+        new ModuleIC2().load();
+        verify(adapterRegistry).register(any(IPeripheralAdapter.class));
+    }
+
+    @Test
+    public void ic2ApiModuleRegistersAdaptersAndItemMetadata() {
+        new ModuleIC2Api().load();
+        verify(adapterRegistry, times(9)).register(any(IPeripheralAdapter.class));
+        verify(itemStackMetaBuilder).register(any(IItemStackMetaProvider.class));
+    }
+
+    @Test
+    public void railcraftModulesRegisterTheirAdapters() {
+        new ModuleRailcraft().load();
+        verify(adapterRegistry, times(7)).register(any(IPeripheralAdapter.class));
+        verify(itemStackMetaBuilder).register(any(IItemStackMetaProvider.class));
+
+        new ModuleRailcraftCarts().load();
+        verify(entityMetaBuilder, times(7)).register(any(IEntityMetaProvider.class));
+
+        new ModuleRailcraftFuel().load();
+        verify(itemStackMetaBuilder, times(2)).register(any(IItemStackMetaProvider.class));
+    }
+
+    @Test
+    public void thaumcraftModulesRegisterTheirAdapters() {
+        new ModuleThaumcraft().load();
+        verify(adapterRegistry, times(5)).register(any(IPeripheralAdapter.class));
+
+        new ModuleThaumcraftApi().load();
+        verify(adapterRegistry, times(8)).register(any(IPeripheralAdapter.class));
+        verify(itemStackMetaBuilder, times(3)).register(any(IItemStackMetaProvider.class));
+        verify(converterManager).register(any(IOutboundTypeConverter.class));
+    }
+
+    @Test
+    public void buildCraftModulesRegisterTheirAdapters() {
+        new ModuleBuildCraftTransport().load();
+        verify(adapterRegistry, times(1)).register(any(IPeripheralAdapter.class));
+
+        new ModuleBuildCraftTile().load();
+        verify(adapterRegistry, times(2)).register(any(IPeripheralAdapter.class));
+
+        new ModuleBuildCraftFacades().load();
+        verify(itemStackMetaBuilder, times(1)).register(any(IItemStackMetaProvider.class));
+    }
+
+    @Test
+    public void forestryModuleRegistersItsAdapterConverterAndMetadata() {
+        new ModuleForestry().load();
+        verify(adapterRegistry).register(any(IPeripheralAdapter.class));
+        verify(converterManager).register(any(IOutboundTypeConverter.class));
+        verify(itemStackMetaBuilder).register(any(IItemStackMetaProvider.class));
+    }
+
+    @Test
+    public void tmechworksModuleRegistersItsAdapter() {
+        new ModuleTMechworks().load();
+        verify(adapterRegistry).register(any(IPeripheralAdapter.class));
     }
 
     @Test
