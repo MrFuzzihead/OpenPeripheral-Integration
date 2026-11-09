@@ -5,6 +5,7 @@ import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Field;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -270,6 +271,40 @@ public class EntityMetaProvidersTest {
         Assert.assertTrue(map.containsKey("potionEffects"));
         Assert.assertTrue(map.containsKey("potion_effects"));
         Assert.assertFalse(map.containsKey("lookingAt"));
+    }
+
+    @Test
+    public void livingMetadataWithPotionEffects() throws Exception {
+        final EntityLivingBase living = mock(EntityLivingBase.class);
+        setField(living, "worldObj", mock(World.class));
+        final net.minecraft.potion.PotionEffect effect = new net.minecraft.potion.PotionEffect(1, 200, 1, true);
+        when(living.getActivePotionEffects()).thenReturn(Collections.singletonList(effect));
+        when(living.getHealth()).thenReturn(10.0f);
+        when(living.getMaxHealth()).thenReturn(20.0f);
+        when(living.getLook(1.0f)).thenReturn(Vec3.createVectorHelper(0, 0, 1));
+
+        @SuppressWarnings("unchecked")
+        final Map<String, Object> map = (Map<String, Object>) new EntityLivingMetaProvider().getMeta(living, null);
+
+        @SuppressWarnings("unchecked")
+        final List<Map<String, Object>> effects = (List<Map<String, Object>>) map.get("potion_effects");
+        Assert.assertEquals(1, effects.size());
+        Assert.assertEquals(
+            10,
+            effects.get(0)
+                .get("duration"));
+        Assert.assertEquals(
+            1,
+            effects.get(0)
+                .get("amplifier"));
+        Assert.assertEquals(
+            Boolean.TRUE,
+            effects.get(0)
+                .get("is_ambient"));
+
+        @SuppressWarnings("unchecked")
+        final Map<Object, String> legacy = (Map<Object, String>) map.get("potionEffects");
+        Assert.assertEquals("potion.moveSpeed", legacy.get(1));
     }
 
     @Test

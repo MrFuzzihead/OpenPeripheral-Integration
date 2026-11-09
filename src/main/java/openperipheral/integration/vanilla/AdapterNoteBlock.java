@@ -49,7 +49,6 @@ public class AdapterNoteBlock implements IPeripheralAdapter {
         return true;
     }
 
-    @Asynchronous
     @ScriptCallable(returnTypes = ReturnType.NUMBER, description = "Get the note currently set on this noteblock")
     public byte getNote(TileEntityNote noteblock) {
         return noteblock.note;

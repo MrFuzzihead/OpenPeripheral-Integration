@@ -50,11 +50,13 @@ public class AdapterInventory implements IPeripheralAdapter {
         return "inventory";
     }
 
+    @Asynchronous(false)
     @ScriptCallable(returnTypes = ReturnType.STRING, description = "Get the name of this inventory")
     public String getInventoryName(IInventory target) {
         return requireInventory(target).getInventoryName();
     }
 
+    @Asynchronous(false)
     @ScriptCallable(returnTypes = ReturnType.NUMBER, description = "Get the size of this inventory")
     public int getInventorySize(IInventory target) {
         return requireInventory(target).getSizeInventory();
@@ -136,6 +138,7 @@ public class AdapterInventory implements IPeripheralAdapter {
         inventory.markDirty();
     }
 
+    @Asynchronous(false)
     @ScriptCallable(returnTypes = ReturnType.TABLE, description = "Get full stack information from id and/or damage")
     public ItemStack expandStack(IInventory target, @Arg(name = "stack") ItemStack itemStack) {
         return itemStack;

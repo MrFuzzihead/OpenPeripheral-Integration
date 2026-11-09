@@ -58,7 +58,7 @@ public class NotebookIInventoryWrapper implements IInventory {
         returning.stackSize = amount;
 
         stack.stackSize -= amount;
-        if (stack.stackSize <= 0) setInventorySlotContents(slot, stack);
+        if (stack.stackSize <= 0) setInventorySlotContents(slot, null);
 
         return returning;
     }
@@ -69,8 +69,10 @@ public class NotebookIInventoryWrapper implements IInventory {
     }
 
     @Override
-    public ItemStack getStackInSlotOnClosing(int i) {
-        throw new UnsupportedOperationException("Not implemented");
+    public ItemStack getStackInSlotOnClosing(int slot) {
+        final ItemStack stack = getStackInSlot(slot);
+        if (stack != null) setInventorySlotContents(slot, null);
+        return stack;
     }
 
     @Override

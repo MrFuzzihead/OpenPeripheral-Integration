@@ -8,8 +8,8 @@ Test/build facts at the time of writing:
 
 | Item | Value |
 |------|-------|
-| `./gradlew test` | **89 tests / 10 classes, all green** |
-| JaCoCo | **23.8 % line** (580/2440), **21.3 % branch** (137/642) |
+| `./gradlew test` | **92 tests / 9 classes, all green** |
+| JaCoCo | **24.3 % line** (593/2440), **22.8 % branch** (149/654) |
 | Coverage floor enforced by `check` | 18 % line / 10 % branch |
 | `./gradlew check` | green (compile, tests, JaCoCo verification, Spotless, Checkstyle) |
 | `./gradlew gameTestServer` | green — `GAMETEST_INT_ADAPTERS_OK`, `GAMETEST_INT_LUA_OK`, `OPENPERIPHERAL_INTEGRATION_GAMETEST_OK` |
@@ -58,7 +58,7 @@ New/changed files:
 |---|---|
 | `dependencies.gradle` | `testImplementation` JUnit 4.13.2, Mockito 4.11.0 + `mockito-inline` |
 | `addon.gradle.kts` | JaCoCo, Java 8 test toolchain, `gameTest` source set, `gameTestServer`, coverage floor |
-| `src/test/java/openperipheral/integration/**` | 89 headless tests across 10 classes |
+| `src/test/java/openperipheral/integration/**` | 92 headless tests across 9 classes |
 | `src/gameTest/java/openperipheral/integration/gametest/IntegrationGameTestMod.java` | non-shipped test mod: real provider, fake CC access/context, real ComputerCraft computer |
 | `src/gameTest/resources/openperipheralintegration/lua/peripheral_tests.lua` | Lua suite shared by the headless test and the in-game test |
 | `.github/workflows/game-test.yml` | CI job that boots a dedicated server and greps the markers |
@@ -66,7 +66,7 @@ New/changed files:
 Commands:
 
 ```sh
-./gradlew test                        # 89 JUnit tests (Java 8)
+./gradlew test                        # 92 JUnit tests (Java 8)
 ./gradlew jacocoTestReport            # build/reports/jacoco/test/html
 ./gradlew jacocoTestCoverageVerification
 ./gradlew check                       # tests + coverage floor + Spotless + Checkstyle
@@ -98,8 +98,8 @@ Coverage gaps are listed in §8.
 - **3.2** CoFH `AdapterInventoryHandler` methods are public and annotated with `@ScriptCallable`.
 - **3.3** AE2 missing-items payload now carries the actual missing amount; the requested stack is no
   longer double-converted.
-- **3.4** `getRequestedJobs()` returns an empty set instead of `null` (the `injectCraftedItems` semantics
-  are still open).
+- **3.4** `getRequestedJobs()` returns an empty set instead of `null` (`injectCraftedItems` was completed in
+  batch 2).
 - **3.5** out-of-range/negative enchantment ids are skipped instead of throwing `AIOOBE`.
 - **3.6** `AdapterSign.setText` accepts exactly four lines; **§4.1** `setLines` now truncates to 15 chars.
 - **3.7** note-block pitch is wrapped with `Math.floorMod` and only written after the Forge hook approves.
@@ -126,6 +126,28 @@ Coverage gaps are listed in §8.
 - **§4.21** `SecurityUtils` fails closed on a null access mode; **§4.22** null potion entries are handled.
 - **§4.23** beacon effects no longer allocate a throw-away `PotionEffect`.
 - Tests: **89** (was 80), coverage **23.8 % line / 21.3 % branch**.
+
+---
+
+## 0c. Batch 3 — cleanup, Mystcraft contracts, async trimming
+
+- **Mystcraft v1:** `decrStackSize` clears the slot with `null` instead of a zero-size stack;
+  `getStackInSlotOnClosing` now clears and returns the stack; `pullNotebookPage` validates the 1-based
+  page slot.
+- **Mystcraft v2:** `pushNotebookPage` only re-adds a non-empty remainder; `createInventoryWrapper`
+  throws `IllegalArgumentException` (Lua-friendly) instead of `IllegalStateException`; `getSlotCount`
+  no longer takes an ignored argument (Lua callers passing one still work — extra Lua args are ignored).
+- **MystcraftAccess:** log messages name the API, are spelled correctly, and pass the `api` argument
+  they format.
+- **Dead code removed:** unregistered `VanillaMinecraftMetaProvider` and the three unused
+  `DUMMY_VANILLA_MODID` constants.
+- **Async trimming:** pure getters no longer round-trip through the server thread (IC2 energy/reactor
+  adapters, note-block `getNote`, inventory `getInventoryName`/`getInventorySize`/`expandStack`).
+- **ItemFingerprint** is now a value object (`equals`/`hashCode` by id/damage/NBT hash) with a corrected
+  class Javadoc.
+- **AdapterSecureTile.getOwner** advertises `OBJECT` instead of `STRING`.
+- **Electric machine** progress returns 0 (not 100 %) when the energy buffer is zero.
+- Tests: **92**, coverage **24.3 % line / 22.8 % branch**.
 
 ---
 
@@ -248,21 +270,21 @@ the client (the hook exists precisely to allow this). Also:
 | 16 ✅ | `AdapterNetwork.getAvailableItems` | Unchecked `(Map<String,Object>) converter.fromJava(stack)`; if a converter returns anything else this is a `CCE` inside Lua. It also materialises the whole network into a list on every call — a large network can stall the computer thread. |
 | 17 ✅ | `FacadeMetaProvider` | Assumes `getBlocksForFacade(stack).length == getMetaValuesForFacade(stack).length`; a mismatched third-party facade gives `AIOOBE`. |
 | 18 ✅ | `AdapterArcaneBore` | `isWorking` NPEs if `hasPickaxe` is true but `getPick` returns null; `getPick` hard-codes slot 1 (Thaumcraft internal); a renamed/remapped field makes the `FieldAccess` initialisers fail at adapter construction. |
-| 19 | `AdapterElecticMachine` (typo) | `getProgress` divides by `MAX_ENERGY`; 0 gives `Infinity` → clamps to 100 %. Also, `CLASS` is `null` if IC2 renames the internal class, and the adapter instance is created during module load — a hard crash instead of a skipped adapter. |
-| 20 | `AdapterSecureTile` | `getOwner` is declared `ReturnType.STRING` but returns `GameProfile`; `getOwnerName`/`getOwner` descriptions are identical. |
+| 19 ✅ | `AdapterElecticMachine` (typo) | `getProgress` divides by `MAX_ENERGY`; 0 gives `Infinity` → clamps to 100 %. Also, `CLASS` is `null` if IC2 renames the internal class, and the adapter instance is created during module load — a hard crash instead of a skipped adapter. |
+| 20 ✅ | `AdapterSecureTile` | `getOwner` is declared `ReturnType.STRING` but returns `GameProfile`; `getOwnerName`/`getOwner` descriptions are identical. |
 | 21 ✅ | `SecurityUtils.canModify` | NPEs if `ISecurable#getAccess()` returns null; CoFH tiles normally don’t, but a one-line null guard is cheap. |
 | 22 ✅ | `ItemPotionMetaProvider.getPotionInfo` | Range-checks the id but not `Potion.potionTypes[id] != null`; unused-but-in-range ids NPE on `potion.getName()`. |
 | 23 ✅ | `AdapterBeacon.getEffectName` | Constructs a throw-away `PotionEffect` just to get the name; `Potion.potionTypes[id].getName()` is enough and cannot throw on valid beacon effects. |
 | 24 | `ModuleVanilla` / `ModuleVanillaInventory` / `ModuleVanillaInventoryManipulation` | All three declare an unused, mutable `public static String DUMMY_VANILLA_MODID = "vanilla"`. Remove (it is not a mod id). |
 | 25 | `InventoryMetaProvider.wrapToProxyTable` | Hard-codes `slot + 1` for both architectures; correct for CC and OC (both are 1-based today), but the 1-based assumption is undocumented. |
-| 26 | `EntityLivingMetaProvider` | Exposes the same information twice: `potionEffects` (map `1..n` → effect name) and `potion_effects` (list of tables). One is redundant and confusing for script authors. |
+| 26 | `EntityLivingMetaProvider` | Exposes the same information twice: `potionEffects` (map `1..n` → effect name) and `potion_effects` (list of tables). **Kept intentionally** for Lua compatibility (both shapes are in use); document the preferred key instead of removing one. |
 | 27 | `EntityLivingMetaProvider` (perf) | Performs a 10-block `rayTraceBlocks` on every metadata read; metadata is often requested in bulk (e.g. `getEntityMetadata` loops). Consider making `lookingAt` opt-in or throttled. |
-| 28 | `Mystcraft v2 NotebookWrapper.getSlotCount(int slot)` | Has an unused `slot` parameter; Lua callers must pass a slot for a value that ignores it. Change to `getSlotCount()` (breaking Lua signature — document it). |
-| 29 | `Mystcraft v1 NotebookIInventoryWrapper.decrStackSize` | When the stack reaches size 0 it calls `setInventorySlotContents(slot, stack)` with a zero-size stack instead of `null`; `getStackInSlotOnClosing` throws `UnsupportedOperationException`, and `markDirty` is a no-op. This wrapper violates the `IInventory` contract and can confuse hoppers/pipes. |
-| 30 | `Mystcraft v1 AdapterWritingDesk.pullNotebookPage` | Converts a 1-based `notebookSlot` with `notebookSlot - 1` while every other method takes an `Index`; a Lua `0` becomes `-1`. Validate/clamp. |
-| 31 | `Mystcraft v2 AdapterWritingDesk.pushNotebookPage` | `if (remains >= 0)` is always true; a fully inserted page calls `addPage` with a 0-size copy. Use `> 0`. |
-| 32 | `Mystcraft v2 createInventoryWrapper` | Throws `IllegalStateException` (`Preconditions.checkState`) for an empty/invalid slot; every other adapter reports `IllegalArgumentException`, which OpenPeripheral turns into a Lua error. Use `checkArgument`. |
-| 33 | `MystcraftAccess` | Log messages say “Mystraft” and “unavalable”; the catch-all `Exception` hides API bugs. |
+| 28 ✅ | `Mystcraft v2 NotebookWrapper.getSlotCount(int slot)` | Has an unused `slot` parameter; Lua callers must pass a slot for a value that ignores it. Change to `getSlotCount()` (breaking Lua signature — document it). |
+| 29 ✅ | `Mystcraft v1 NotebookIInventoryWrapper.decrStackSize` | When the stack reaches size 0 it calls `setInventorySlotContents(slot, stack)` with a zero-size stack instead of `null`; `getStackInSlotOnClosing` throws `UnsupportedOperationException`, and `markDirty` is a no-op. This wrapper violates the `IInventory` contract and can confuse hoppers/pipes. |
+| 30 ✅ | `Mystcraft v1 AdapterWritingDesk.pullNotebookPage` | Converts a 1-based `notebookSlot` with `notebookSlot - 1` while every other method takes an `Index`; a Lua `0` becomes `-1`. Validate/clamp. |
+| 31 ✅ | `Mystcraft v2 AdapterWritingDesk.pushNotebookPage` | `if (remains >= 0)` is always true; a fully inserted page calls `addPage` with a 0-size copy. Use `> 0`. |
+| 32 ✅ | `Mystcraft v2 createInventoryWrapper` | Throws `IllegalStateException` (`Preconditions.checkState`) for an empty/invalid slot; every other adapter reports `IllegalArgumentException`, which OpenPeripheral turns into a Lua error. Use `checkArgument`. |
+| 33 ✅ | `MystcraftAccess` | Log messages say “Mystraft” and “unavalable”; the catch-all `Exception` hides API bugs. |
 | 34 | `AdapterBeeHousing` | `getBeeChildren` exposes the misspelled `parentYpe` argument name (Lua docs), `alleleCompatator` is misspelled, `getBeeBreedingData` aborts the whole list with a `RuntimeException` if one mutation is malformed (skip + log instead), and `getMutations(false)` is fetched repeatedly. |
 | 35 | `ConverterIIndividual` | `conventers` is misspelled; `convertAllele` returns the literal `"missing"` for a null allele, which is indistinguishable from a legitimate species name; `describeIndividual` calls `hasEffect()` on every `IIndividual` (verify that all Forestry implementations support it). |
 | 36 | `OpenPeripheralIntegration` config key `buildcraft-api-tilenentity` | Typo in a persisted config key. Renaming would orphan existing configs; keep reading the old key and optionally migrate to `buildcraft-api-tileentity` (log migration). |
@@ -291,14 +313,14 @@ the client (the hook exists precisely to allow this). Also:
      Lua memory.
    - `StorageCellMetaProvider` performs a full AE2 cell inventory scan on every item metadata lookup;
      cache by `ItemStack` (NBT hash) or make it opt-in.
-4. **Async annotations**
-   - `ModuleIC2Api` adapters (`AdapterEnergyConductor/Sink/Source/Storage`) are annotated
+4. **Async annotations** ✅ (batch 3)
+   - `ModuleIC2Api` adapters (`AdapterEnergyConductor/Sink/Source/Storage`) were annotated
      `@Asynchronous` at class level although they are pure getters. Every Lua call allocates a main-thread
      task and resumes on the next tick. Remove class-level `@Asynchronous` and keep it only where a call
      can block (none of these do).
-   - `AdapterNoteBlock.getNote` is `@Asynchronous` although it reads a byte.
-   - `AdapterInventory` is class-level `@Asynchronous`; only mutations need it. `getStackInSlot`/`getAllStacks`
-     could be synchronous (`@Asynchronous(false)`), the way `destroyStack` already is.
+   - `AdapterNoteBlock.getNote` was `@Asynchronous` although it reads a byte (now synchronous).
+   - `AdapterInventory` keeps class-level `@Asynchronous` for the heavy calls; `getInventoryName`,
+     `getInventorySize` and `expandStack` are now `@Asynchronous(false)`.
 5. **Collections**
    - `AdapterInventory.getAllStacks` → `LinkedHashMap` or `TreeMap<Index, Object>`.
    - `EntityLivingMetaProvider` uses two maps for potion data; keep one.
@@ -332,9 +354,9 @@ the client (the hook exists precisely to allow this). Also:
    `BooleanReflectionAdapter`) to cut ~400 lines and remove copy/paste bugs.
 4. **MFR/Railcraft reflection adapters** are ~15 classes of the same getter/setter pattern. A tiny
    `PropertyReflection` helper (`get`/`set` method name + type) would make them data-driven.
-5. **Fingerprint type**: promote `ItemFingerprint` to a value object (`equals`/`hashCode`, validated id,
-   `fromString` parser), and use it in AE2/Railcraft comparisons instead of ad-hoc `UniqueIdentifier`
-   construction.
+5. **Fingerprint type** ✅ (batch 3): `ItemFingerprint` now has validated ids and `equals`/`hashCode`.
+   Using it directly in AE2/Railcraft comparisons (instead of ad-hoc `UniqueIdentifier` construction) is
+   still open.
 6. **Consistent validation**: decide once whether adapters throw `IllegalArgumentException` /
    `IllegalStateException` / `LuaException` for bad input and apply it. Today `AdapterInventory` uses
    `Index#checkElementIndex` (IOOBE), Mystcraft uses `IllegalStateException`, AE2 uses
@@ -360,9 +382,7 @@ the client (the hook exists precisely to allow this). Also:
 
 | Item | Notes |
 |---|---|
-| `railcraft/VanillaMinecraftMetaProvider` | Never registered (`ModuleRailcraftCarts` registers the other cart providers). Either register it or delete it. Its key `railcraft_cart` would collide conceptually with the other cart metadata keys, so deleting is probably right. |
 | `cofh/inventory/AdapterInventoryHandler` methods | Unreachable from Lua (no `@ScriptCallable`, package-private) — see 3.2. |
-| `DUMMY_VANILLA_MODID` (×3) | Unused public mutable statics. |
 | `NotebookIInventoryWrapper.getStackInSlotOnClosing` | Always throws; part of `IInventory` but never useful. |
 | `Mystcraft v1` package | Only loaded for Mystcraft `< 0.11.1.00`; kept for compatibility, but the code is effectively maintenance-only. Consider documenting that in the package-info. |
 
@@ -431,7 +451,7 @@ Highest-value additions:
 ```text
 ./gradlew updateDependencies        # then manually corrected (AE2 1099, OpenModsLib 0.10.15)
 ./gradlew spotlessApply
-./gradlew test                      # 89 tests, green
+./gradlew test                      # 92 tests, green
 ./gradlew jacocoTestReport          # 21.3 % line, 18.6 % branch
 ./gradlew check                     # green
 ./gradlew gameTestServer            # green (adapter + real Lua markers)

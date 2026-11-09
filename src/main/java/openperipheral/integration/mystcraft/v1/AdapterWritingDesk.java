@@ -116,8 +116,10 @@ public class AdapterWritingDesk implements IPeripheralAdapter {
             description = "The slot in the other inventory that you're pulling from") int notebookSlot) {
         IInventory source = getTargetTile(desk, direction);
         IInventory target = createInventoryWrapper(desk, deskSlot);
+        final int sourceSlot = notebookSlot - 1;
+        Preconditions.checkElementIndex(sourceSlot, source.getSizeInventory(), "notebook page slot");
         final int amount = ItemDistribution
-            .moveItemInto(source, notebookSlot - 1, target, -1, 1, direction.getOpposite(), true, false);
+            .moveItemInto(source, sourceSlot, target, -1, 1, direction.getOpposite(), true, false);
         if (amount > 0) source.markDirty();
         return amount;
     }

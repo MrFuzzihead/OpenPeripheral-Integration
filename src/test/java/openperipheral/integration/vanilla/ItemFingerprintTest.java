@@ -17,6 +17,17 @@ public class ItemFingerprintTest {
                 .contains("minecraft:stone"));
     }
 
+    @Test
+    public void equalityUsesIdDamageAndNbtHash() {
+        final ItemFingerprint fingerprint = new ItemFingerprint("minecraft:stone", 3, "hash");
+
+        Assert.assertEquals(fingerprint, fingerprint);
+        Assert.assertEquals(fingerprint, new ItemFingerprint("minecraft:stone", 3, "hash"));
+        Assert.assertEquals(fingerprint.hashCode(), new ItemFingerprint("minecraft:stone", 3, "hash").hashCode());
+        Assert.assertNotEquals(fingerprint, new ItemFingerprint("minecraft:stone", 3, null));
+        Assert.assertNotEquals(fingerprint, "minecraft:stone");
+    }
+
     @Test(expected = IllegalArgumentException.class)
     public void rejectsIdWithoutNamespace() {
         new ItemFingerprint("stone", 0, null);

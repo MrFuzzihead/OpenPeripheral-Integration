@@ -91,7 +91,7 @@ public class AdapterWritingDesk implements IPeripheralAdapter {
             .moveItemInto(tmp, 0, target, intoSlot.value, removedPage.stackSize, direction, true);
 
         int remains = removedPage.stackSize - result;
-        if (remains >= 0) {
+        if (remains > 0) {
             ItemStack returns = removedPage.copy();
             returns.stackSize = remains;
             wrapper.addPage(returns);
@@ -152,9 +152,9 @@ public class AdapterWritingDesk implements IPeripheralAdapter {
 
     private NotebookWrapper createInventoryWrapper(TileEntity tile, Index slot) {
         ItemStack notebook = GET_NOTEBOOK.call(tile, slot.byteValue());
-        Preconditions.checkState(notebook != null, "Empty slot");
+        Preconditions.checkArgument(notebook != null, "Empty slot");
         Item item = notebook.getItem();
-        Preconditions.checkState(item instanceof IItemPageCollection, "Invalid item in slot");
+        Preconditions.checkArgument(item instanceof IItemPageCollection, "Invalid item in slot");
         return new NotebookWrapper((WorldServer) tile.getWorldObj(), (IItemPageCollection) item, notebook);
     }
 }

@@ -1,5 +1,7 @@
 package openperipheral.integration.vanilla;
 
+import java.util.Objects;
+
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -11,8 +13,8 @@ import cpw.mods.fml.common.registry.GameRegistry.UniqueIdentifier;
 import openmods.utils.ItemUtils;
 
 /**
- * SearchNeedle is a helper class meant to allow easier communication between
- * Lua and vanilla requesting access to a specific item;
+ * Value object used to identify an item stack from Lua. Exposed as
+ * {@code {id:string, dmg:number?, nbt_hash:string?}} and compared by id/damage/NBT hash.
  */
 public class ItemFingerprint {
 
@@ -48,6 +50,20 @@ public class ItemFingerprint {
             .getNameForObject(item);
         Preconditions.checkArgument(itemId != null, "Item %s is not registered", item);
         return new UniqueIdentifier(itemId);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (!(obj instanceof ItemFingerprint)) return false;
+
+        final ItemFingerprint other = (ItemFingerprint) obj;
+        return damage == other.damage && Objects.equals(id, other.id) && Objects.equals(nbtHash, other.nbtHash);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, damage, nbtHash);
     }
 
     @Override

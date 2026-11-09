@@ -412,6 +412,22 @@ public class InventoryAdaptersTest {
     }
 
     @Test
+    public void inventoryProviderMetadataWrapsTheProvidedInventory() {
+        final FakeInventory inventory = new FakeInventory(2);
+        inventory.slots[0] = stack(1, 0);
+        final openperipheral.api.meta.IMetaProviderProxy proxy = mock(openperipheral.api.meta.IMetaProviderProxy.class);
+        when(OpcAccess.itemStackMetaBuilder.createProxy(any(ItemStack.class))).thenReturn(proxy);
+
+        final openmods.inventory.IInventoryProvider provider = mock(openmods.inventory.IInventoryProvider.class);
+        when(provider.getInventory()).thenReturn(inventory);
+
+        @SuppressWarnings("unchecked")
+        final Map<Integer, ?> metadata = (Map<Integer, ?>) new InventoryProviderMetaProvider().getMeta(provider, null);
+        Assert.assertEquals(1, metadata.size());
+        Assert.assertSame(proxy, metadata.get(1));
+    }
+
+    @Test
     public void worldInventoryReportsEmptyOtherSide() {
         final World world = mock(World.class);
         final PosInventory target = new PosInventory(world, 5, 6, 7, 3);

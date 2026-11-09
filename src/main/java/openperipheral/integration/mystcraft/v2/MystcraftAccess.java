@@ -26,13 +26,13 @@ public class MystcraftAccess {
         try {
             return (T) provider.getAPIInstance(api);
         } catch (APIUndefined e) {
-            Log.warn(e, "Mystraft API %s is not provided. Some functionality may be disabled.");
+            Log.warn(e, "Mystcraft API %s is not provided. Some functionality may be disabled.", api);
         } catch (APIVersionUndefined e) {
-            Log.warn(e, "Mystraft API %s version is unavalable. Some functionality may be disabled.");
+            Log.warn(e, "Mystcraft API %s version is unavailable. Some functionality may be disabled.", api);
         } catch (APIVersionRemoved e) {
-            Log.warn(e, "Mystraft API %s version is unsupported. Some functionality may be disabled.");
+            Log.warn(e, "Mystcraft API %s version is unsupported. Some functionality may be disabled.", api);
         } catch (Exception e) {
-            Log.warn(e, "Unknown exception why trying to get Mystcraft API %s", api);
+            Log.warn(e, "Unknown exception while getting Mystcraft API %s", api);
         }
 
         return null;

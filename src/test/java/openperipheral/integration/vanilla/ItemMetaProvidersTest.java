@@ -303,8 +303,11 @@ public class ItemMetaProvidersTest {
             fingerprint.toString()
                 .contains("abc"));
 
-        // No equals() override today: every instance is distinct. Documented in the code review.
-        Assert.assertNotEquals(fingerprint, new ItemFingerprint("minecraft:stone", 3, "abc"));
+        Assert.assertEquals(fingerprint, new ItemFingerprint("minecraft:stone", 3, "abc"));
+        Assert.assertEquals(fingerprint.hashCode(), new ItemFingerprint("minecraft:stone", 3, "abc").hashCode());
+        Assert.assertNotEquals(fingerprint, new ItemFingerprint("minecraft:stone", 4, "abc"));
+        Assert.assertNotEquals(fingerprint, new ItemFingerprint("minecraft:stone", 3, "other"));
+        Assert.assertNotEquals(fingerprint, new ItemFingerprint("minecraft:diamond", 3, "abc"));
     }
 
     @Test
