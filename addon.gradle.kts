@@ -58,7 +58,7 @@ tasks.named("check").configure {
 }
 
 val isGameTestRun = project.hasProperty("gameTest") ||
-    gradle.startParameter.taskNames.any { it.contains("gameTestServer") }
+    gradle.startParameter.taskNames.any { it.contains("gameTest") }
 if (isGameTestRun) {
     tasks.withType<JavaExec>().configureEach {
         if (name.startsWith("runServer") || name.startsWith("runClient")) {
@@ -72,6 +72,12 @@ tasks.register("gameTestServer") {
     group = "verification"
     description = "Boots a dedicated server, runs the in-game integration test mod, and exits with its result"
     if (isGameTestRun) dependsOn(tasks.named("runServer25"))
+}
+
+tasks.register("gameTestClient") {
+    group = "verification"
+    description = "Boots a client, opens the config GUI, and exits with the result of the client game test"
+    if (isGameTestRun) dependsOn(tasks.named("runClient25"))
 }
 
 fun jacocoClassDirs() = project.files(mainSourceSet.output.classesDirs).asFileTree.matching {
@@ -111,13 +117,13 @@ tasks.named<JacocoCoverageVerification>("jacocoTestCoverageVerification") {
                 value = "COVEREDRATIO"
                 // Regression guard, not a target. Most of this mod is thin reflection glue over
                 // third-party APIs that cannot be instantiated headlessly; raise as coverage grows.
-                // Current: ~54.9 % line / ~44.7 % branch (177 tests).
-                minimum = "0.50".toBigDecimal()
+                // Current: ~55.5 % line / ~44.7 % branch (181 tests).
+                minimum = "0.52".toBigDecimal()
             }
             limit {
                 counter = "BRANCH"
                 value = "COVEREDRATIO"
-                minimum = "0.40".toBigDecimal()
+                minimum = "0.42".toBigDecimal()
             }
         }
     }

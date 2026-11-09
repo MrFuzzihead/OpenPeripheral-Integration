@@ -20,6 +20,7 @@ import net.minecraft.world.World;
 import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.Mod;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
+import cpw.mods.fml.common.event.FMLLoadCompleteEvent;
 import cpw.mods.fml.common.event.FMLServerStartedEvent;
 import dan200.computercraft.api.filesystem.IMount;
 import dan200.computercraft.api.filesystem.IWritableMount;
@@ -76,6 +77,16 @@ public class IntegrationGameTestMod {
     public void init(FMLInitializationEvent evt) {
         if (!ENABLED) return;
         Log.info("OpenPeripheral-Integration game tests enabled");
+    }
+
+    @Mod.EventHandler
+    public void clientLoad(FMLLoadCompleteEvent evt) {
+        if (!ENABLED) return;
+        if (!FMLCommonHandler.instance()
+            .getSide()
+            .isClient()) return;
+
+        ClientGameTests.run();
     }
 
     @Mod.EventHandler

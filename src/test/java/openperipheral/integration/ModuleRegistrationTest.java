@@ -43,6 +43,7 @@ import openperipheral.integration.railcraft.ModuleRailcraftCarts;
 import openperipheral.integration.railcraft.ModuleRailcraftFuel;
 import openperipheral.integration.thaumcraft.ModuleThaumcraft;
 import openperipheral.integration.thaumcraft.ModuleThaumcraftApi;
+import openperipheral.integration.thermalexpansion.ModuleThermalExpansion;
 import openperipheral.integration.tmechworks.ModuleTMechworks;
 import openperipheral.integration.vanilla.ItemFingerprint;
 import openperipheral.integration.vanilla.ModuleVanilla;
@@ -240,6 +241,12 @@ public class ModuleRegistrationTest {
         new ModuleMystcraftV2().load();
         verify(adapterRegistry).register(any(IPeripheralAdapter.class));
         verify(itemStackMetaBuilder, times(3)).register(any(IItemStackMetaProvider.class));
+    }
+
+    @Test
+    public void thermalExpansionRegistersItsLampAdapter() {
+        new ModuleThermalExpansion().load();
+        verify(adapterRegistry).register(any(IPeripheralAdapter.class));
     }
 
     @Test

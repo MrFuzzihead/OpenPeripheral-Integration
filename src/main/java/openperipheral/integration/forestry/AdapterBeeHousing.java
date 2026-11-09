@@ -25,6 +25,7 @@ import forestry.api.genetics.IGenome;
 import forestry.api.genetics.IIndividual;
 import forestry.api.genetics.IMutation;
 import forestry.api.genetics.ISpeciesRoot;
+import openmods.Log;
 import openperipheral.api.adapter.Asynchronous;
 import openperipheral.api.adapter.IPeripheralAdapter;
 import openperipheral.api.adapter.method.Arg;
@@ -140,12 +141,8 @@ public class AdapterBeeHousing implements IPeripheralAdapter {
 
                 result.add(mutationMap);
             } catch (Exception e) {
-                throw new RuntimeException(
-                    String.format(
-                        "Failed to get bee breeding information from %s, collected data: %s",
-                        mutation,
-                        mutationMap),
-                    e);
+                // One malformed mutation should not hide the rest of the list.
+                Log.warn(e, "Skipping malformed bee mutation %s (collected data: %s)", mutation, mutationMap);
             }
         }
         return result;

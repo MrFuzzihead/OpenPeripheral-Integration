@@ -8,9 +8,9 @@ Test/build facts at the time of writing:
 
 | Item | Value |
 |------|-------|
-| `./gradlew test` | **177 tests / 22 classes, all green** |
-| JaCoCo | **54.9 % line** (1350/2457), **44.7 % branch** (305/682) |
-| Coverage floor enforced by `check` | 50 % line / 40 % branch |
+| `./gradlew test` | **181 tests / 24 classes, all green** |
+| JaCoCo | **55.5 % line** (1364/2456), **44.7 % branch** (305/682) |
+| Coverage floor enforced by `check` | 52 % line / 42 % branch |
 | `./gradlew check` | green (compile, tests, JaCoCo verification, Spotless, Checkstyle) |
 | `./gradlew gameTestServer` | green — `GAMETEST_INT_ADAPTERS_OK`, `GAMETEST_INT_LUA_OK`, `OPENPERIPHERAL_INTEGRATION_GAMETEST_OK` |
 | Unit-test JVM | Java 8 toolchain (same bytecode target the mod ships) |
@@ -56,9 +56,9 @@ New/changed files:
 
 | Path | Purpose |
 |---|---|
-| `dependencies.gradle` | `testImplementation` JUnit 4.13.2, Mockito 4.11.0 + `mockito-inline`, plus the IC2/Railcraft/Thaumcraft/BuildCraft/Forestry/TMechworks/AE2/EnderStorage/CoFH/MFR/Mystcraft dev jars |
+| `dependencies.gradle` | `testImplementation` JUnit 4.13.2, Mockito 4.11.0 + `mockito-inline`, plus the IC2/Railcraft/Thaumcraft/BuildCraft/Forestry/TMechworks/AE2/EnderStorage/CoFH/MFR/Mystcraft/ThermalExpansion dev jars |
 | `addon.gradle.kts` | JaCoCo, Java 8 test toolchain, `gameTest` source set, `gameTestServer`, coverage floor |
-| `src/test/java/openperipheral/integration/**` | 177 headless tests across 22 classes |
+| `src/test/java/openperipheral/integration/**` | 181 headless tests across 24 classes |
 | `src/gameTest/java/openperipheral/integration/gametest/IntegrationGameTestMod.java` | non-shipped test mod: real provider, fake CC access/context, real ComputerCraft computer |
 | `src/gameTest/resources/openperipheralintegration/lua/peripheral_tests.lua` | Lua suite shared by the headless test and the in-game test |
 | `.github/workflows/game-test.yml` | CI job that boots a dedicated server and greps the markers |
@@ -66,7 +66,7 @@ New/changed files:
 Commands:
 
 ```sh
-./gradlew test                        # 177 JUnit tests (Java 8)
+./gradlew test                        # 181 JUnit tests (Java 8)
 ./gradlew jacocoTestReport            # build/reports/jacoco/test/html
 ./gradlew jacocoTestCoverageVerification
 ./gradlew check                       # tests + coverage floor + Spotless + Checkstyle
@@ -212,6 +212,19 @@ Coverage gaps are listed in §8.
 
 ---
 
+## 0h. Batch 8 — client game test, Thermal Expansion, final cleanup
+
+- Added the Thermal Expansion dev jar and covered `AdapterTileLamp` + `ModuleThermalExpansion`.
+- Added `ConfigGuiFactoryTest` for the factory contract.
+- Added the **client game test**: `gameTestClient` boots a client, opens the real config screen and exits
+  with `OPENPERIPHERAL_INTEGRATION_CLIENT_GAMETEST_OK`. It passes locally and runs under Xvfb in the
+  (non-blocking) CI client job.
+- Forestry: a single malformed mutation is now logged and skipped instead of aborting the whole breeding
+  list.
+- Tests: **181**, coverage **55.5 % line / 44.7 % branch**; floor raised to 52 % / 42 %.
+
+---
+
 ## 3. Critical / high-severity bugs
 
 ### 3.1 Thaumcraft integration module is registered twice — P0 ✅
@@ -346,7 +359,7 @@ the client (the hook exists precisely to allow this). Also:
 | 31 ✅ | `Mystcraft v2 AdapterWritingDesk.pushNotebookPage` | `if (remains >= 0)` is always true; a fully inserted page calls `addPage` with a 0-size copy. Use `> 0`. |
 | 32 ✅ | `Mystcraft v2 createInventoryWrapper` | Throws `IllegalStateException` (`Preconditions.checkState`) for an empty/invalid slot; every other adapter reports `IllegalArgumentException`, which OpenPeripheral turns into a Lua error. Use `checkArgument`. |
 | 33 ✅ | `MystcraftAccess` | Log messages say “Mystraft” and “unavalable”; the catch-all `Exception` hides API bugs. |
-| 34 | `AdapterBeeHousing` | `parentYpe` argument name and the repeated `getMutations(false)` calls are fixed ✅ (batch 4); `alleleCompatator` is still misspelled, and `getBeeBreedingData` still aborts the whole list with a `RuntimeException` if one mutation is malformed (skip + log instead). |
+| 34 | `AdapterBeeHousing` ✅ | `parentYpe`, repeated `getMutations(false)` and the malformed-mutation abort are fixed (batches 4 and 8); `alleleCompatator` remains a harmless spelling nit. |
 | 35 | `ConverterIIndividual` | `conventers` is misspelled; `convertAllele` returns the literal `"missing"` for a null allele, which is indistinguishable from a legitimate species name; `describeIndividual` calls `hasEffect()` on every `IIndividual` (verify that all Forestry implementations support it). |
 | 36 | `OpenPeripheralIntegration` config key `buildcraft-api-tilenentity` ✅ | Renamed to `buildcraft-api-tileentity`; `ConfigMigrations` copies the old value and removes the legacy key (batch 5). |
 | 37 | `ApiIntegrationModule.name()` / `ModIntegrationModule.name()` | Both produce “… (API) CC integration module” / “(mod) CC integration module” even for AE2/IC2/Railcraft — “CC” is wrong for non-ComputerCraft integrations and makes logs confusing. |
@@ -470,8 +483,8 @@ Highest-value additions:
 5. **Additional in-game coverage**: a second test mod adapter for `AdapterWorldInventory` that places two
    chests, calls `pullItem`/`pushItem` through a real peripheral, and verifies item counts — that path is
    currently only covered by mocked headless tests.
-6. **Config GUI**: a client-side game test (Xvfb) that opens the config screen and toggles a module would
-   catch `ConfigGuiFactory` regressions; the current game test is server-only.
+6. **Config GUI** ✅ (batch 8): `gameTestClient` opens the real config screen under Xvfb in CI, and
+   `ConfigGuiFactoryTest` pins the factory contract. Toggling a module through the GUI is still manual.
 7. **Error paths**: `ItemFingerprint` with a malformed id, `AdapterSign.setText` with 5 lines,
    `AdapterInventory` with a null inventory, AE2 `AdapterGridBase` with a null grid — each currently either
    NPEs or throws an internal exception; tests would pin the intended error type once fixed.
@@ -511,7 +524,7 @@ Highest-value additions:
 ```text
 ./gradlew updateDependencies        # then manually corrected (AE2 1099, OpenModsLib 0.10.15)
 ./gradlew spotlessApply
-./gradlew test                      # 177 tests, green
+./gradlew test                      # 181 tests, green
 ./gradlew jacocoTestReport          # 21.3 % line, 18.6 % branch
 ./gradlew check                     # green
 ./gradlew gameTestServer            # green (adapter + real Lua markers)
