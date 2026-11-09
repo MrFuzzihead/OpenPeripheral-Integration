@@ -59,7 +59,7 @@ public class NotebookWrapper {
     }
 
     @ScriptCallable(returnTypes = ReturnType.NUMBER)
-    public int getSlotCount(int slot) {
+    public int getSlotCount() {
         return getPages().size();
     }
 

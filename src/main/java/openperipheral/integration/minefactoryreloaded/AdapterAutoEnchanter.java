@@ -8,11 +8,11 @@ import openperipheral.api.adapter.IPeripheralAdapter;
 import openperipheral.api.adapter.method.Arg;
 import openperipheral.api.adapter.method.ReturnType;
 import openperipheral.api.adapter.method.ScriptCallable;
+import openperipheral.integration.ReflectionTargets;
 
 public class AdapterAutoEnchanter implements IPeripheralAdapter {
 
-    private final Class<?> CLASS = ReflectionHelper
-        .getClass("powercrystals.minefactoryreloaded.tile.machine.TileEntityAutoEnchanter");
+    private final Class<?> CLASS = ReflectionHelper.getClass(ReflectionTargets.MinefactoryReloaded.TILE_AUTO_ENCHANTER);
 
     private final Function0<Integer> GET_TARGET_LEVEL = MethodAccess.create(int.class, CLASS, "getTargetLevel");
     private final Function1<Void, Integer> SET_TARGET_LEVEL = MethodAccess

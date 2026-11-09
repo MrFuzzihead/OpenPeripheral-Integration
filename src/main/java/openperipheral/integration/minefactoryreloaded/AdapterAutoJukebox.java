@@ -6,11 +6,11 @@ import openmods.reflection.ReflectionHelper;
 import openperipheral.api.adapter.IPeripheralAdapter;
 import openperipheral.api.adapter.method.ReturnType;
 import openperipheral.api.adapter.method.ScriptCallable;
+import openperipheral.integration.ReflectionTargets;
 
 public class AdapterAutoJukebox implements IPeripheralAdapter {
 
-    private final Class<?> CLASS = ReflectionHelper
-        .getClass("powercrystals.minefactoryreloaded.tile.machine.TileEntityAutoJukebox");
+    private final Class<?> CLASS = ReflectionHelper.getClass(ReflectionTargets.MinefactoryReloaded.TILE_AUTO_JUKEBOX);
 
     private final Function0<Boolean> GET_CAN_COPY = MethodAccess.create(boolean.class, CLASS, "getCanCopy");
     private final Function0<Boolean> GET_CAN_PLAY = MethodAccess.create(boolean.class, CLASS, "getCanPlay");

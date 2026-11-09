@@ -9,8 +9,8 @@ import openmods.Mods;
 public class TicketItemHolder {
 
     @ObjectHolder("routing.ticket")
-    public static final Item ticket = null;
+    public static Item ticket = null;
 
     @ObjectHolder("routing.ticket.gold")
-    public static final Item ticketGold = null;
+    public static Item ticketGold = null;
 }

@@ -27,7 +27,7 @@ public class AdapterPipe implements IPeripheralAdapter {
 
     private static IPipe getPipe(IPipeTile target) {
         IPipe pipe = target.getPipe();
-        Preconditions.checkNotNull(pipe, "Invalid pipe");
+        Preconditions.checkArgument(pipe != null, "Invalid pipe");
         return pipe;
     }
 

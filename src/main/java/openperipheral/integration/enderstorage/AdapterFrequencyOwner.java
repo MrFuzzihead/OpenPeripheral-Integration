@@ -17,10 +17,11 @@ import openperipheral.api.adapter.method.Arg;
 import openperipheral.api.adapter.method.MultipleReturn;
 import openperipheral.api.adapter.method.ReturnType;
 import openperipheral.api.adapter.method.ScriptCallable;
+import openperipheral.integration.ReflectionTargets;
 
 public class AdapterFrequencyOwner implements IPeripheralAdapter {
 
-    private final Class<?> CLASS = ReflectionHelper.getClass("codechicken.enderstorage.common.TileFrequencyOwner");
+    private final Class<?> CLASS = ReflectionHelper.getClass(ReflectionTargets.EnderStorage.TILE_FREQUENCY_OWNER);
 
     private final FieldAccess<Integer> FREQ = FieldAccess.create(CLASS, "freq");
 

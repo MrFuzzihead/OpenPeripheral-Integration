@@ -6,11 +6,12 @@ import openperipheral.api.adapter.Asynchronous;
 import openperipheral.api.adapter.IPeripheralAdapter;
 import openperipheral.api.adapter.method.ReturnType;
 import openperipheral.api.adapter.method.ScriptCallable;
+import openperipheral.integration.ReflectionTargets;
 
 @Asynchronous
 public class AdapterBrainJar implements IPeripheralAdapter {
 
-    private final Class<?> CLASS = ReflectionHelper.getClass("thaumcraft.common.tiles.TileJarBrain");
+    private final Class<?> CLASS = ReflectionHelper.getClass(ReflectionTargets.Thaumcraft.TILE_JAR_BRAIN);
 
     private final FieldAccess<Integer> XP = FieldAccess.create(CLASS, "xp");
 

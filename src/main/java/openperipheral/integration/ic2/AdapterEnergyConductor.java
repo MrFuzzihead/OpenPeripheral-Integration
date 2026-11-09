@@ -1,12 +1,10 @@
 package openperipheral.integration.ic2;
 
 import ic2.api.energy.tile.IEnergyConductor;
-import openperipheral.api.adapter.Asynchronous;
 import openperipheral.api.adapter.IPeripheralAdapter;
 import openperipheral.api.adapter.method.ReturnType;
 import openperipheral.api.adapter.method.ScriptCallable;
 
-@Asynchronous
 public class AdapterEnergyConductor implements IPeripheralAdapter {
 
     @Override

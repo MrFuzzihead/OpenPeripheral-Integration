@@ -11,11 +11,12 @@ import openperipheral.api.adapter.method.Alias;
 import openperipheral.api.adapter.method.Arg;
 import openperipheral.api.adapter.method.ReturnType;
 import openperipheral.api.adapter.method.ScriptCallable;
+import openperipheral.integration.ReflectionTargets;
 
 public class AdapterTileLamp implements IPeripheralAdapter {
 
     private final Class<?> CLAZZ = ReflectionHelper
-        .getClass("cofh.thermalexpansion.block.light.TileLight", "thermalexpansion.block.light.TileLight");
+        .getClass(ReflectionTargets.CoFH.TILE_LIGHT, ReflectionTargets.CoFH.TILE_LIGHT_LEGACY);
 
     private final Function1<Boolean, Integer> SET_COLOR = MethodAccess
         .create(boolean.class, CLAZZ, int.class, "setColor");

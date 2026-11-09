@@ -6,11 +6,11 @@ import openmods.reflection.ReflectionHelper;
 import openperipheral.api.adapter.IPeripheralAdapter;
 import openperipheral.api.adapter.method.ReturnType;
 import openperipheral.api.adapter.method.ScriptCallable;
+import openperipheral.integration.ReflectionTargets;
 
 public class AdapterTemperature implements IPeripheralAdapter {
 
-    private final Class<?> CLASS = ReflectionHelper
-        .getClass("mods.railcraft.common.plugins.buildcraft.triggers.ITemperature");
+    private final Class<?> CLASS = ReflectionHelper.getClass(ReflectionTargets.Railcraft.I_TEMPERATURE);
 
     private final Function0<Float> GET_TEMPERATURE = MethodAccess.create(float.class, CLASS, "getTemperature");
 

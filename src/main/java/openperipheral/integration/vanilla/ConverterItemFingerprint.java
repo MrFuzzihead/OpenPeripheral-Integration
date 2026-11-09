@@ -28,6 +28,9 @@ public class ConverterItemFingerprint implements ITypeConverter {
         final int dmg = (tmp instanceof Number) ? ((Number) tmp).intValue() : -1;
 
         Object nbtHash = map.get(TAG_NBT);
+        if (nbtHash != null && !(nbtHash instanceof String)) {
+            throw new IllegalArgumentException(String.format("nbt_hash '%s' is not string", nbtHash));
+        }
         return new ItemFingerprint(id, dmg, (String) nbtHash);
     }
 

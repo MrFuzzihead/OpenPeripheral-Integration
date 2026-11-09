@@ -8,11 +8,11 @@ import openperipheral.api.adapter.IPeripheralAdapter;
 import openperipheral.api.adapter.method.Arg;
 import openperipheral.api.adapter.method.ReturnType;
 import openperipheral.api.adapter.method.ScriptCallable;
+import openperipheral.integration.ReflectionTargets;
 
 public class AdapterChronotyper implements IPeripheralAdapter {
 
-    private final Class<?> CLASS = ReflectionHelper
-        .getClass("powercrystals.minefactoryreloaded.tile.machine.TileEntityChronotyper");
+    private final Class<?> CLASS = ReflectionHelper.getClass(ReflectionTargets.MinefactoryReloaded.TILE_CHRONOTYPER);
 
     private final Function0<Boolean> GET_MOVE_ADULTS = MethodAccess.create(boolean.class, CLASS, "getMoveOld");
     private final Function1<Void, Boolean> SET_MOVE_ADULTS = MethodAccess

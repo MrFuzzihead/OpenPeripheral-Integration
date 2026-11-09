@@ -49,38 +49,43 @@ public class AdapterWorldInventory implements IPeripheralAdapter, IAdapterWithCo
         if (slot.value != ANY_SLOT) slot.checkElementIndex(name + " slot id", inventory.getSizeInventory());
     }
 
+    private static final class TileEntityPosProvider implements IWorldPosProvider {
+
+        private final TileEntity tile;
+
+        private TileEntityPosProvider(TileEntity tile) {
+            this.tile = tile;
+        }
+
+        @Override
+        public boolean isValid() {
+            return !tile.isInvalid();
+        }
+
+        @Override
+        public World getWorld() {
+            return tile.getWorldObj();
+        }
+
+        @Override
+        public int getX() {
+            return tile.xCoord;
+        }
+
+        @Override
+        public int getY() {
+            return tile.yCoord;
+        }
+
+        @Override
+        public int getZ() {
+            return tile.zCoord;
+        }
+    }
+
     private static IWorldPosProvider getProvider(IInventory target) {
         if (target instanceof IWorldPosProvider) return (IWorldPosProvider) target;
-        if (target instanceof TileEntity) {
-            final TileEntity te = (TileEntity) target;
-            return new IWorldPosProvider() {
-
-                @Override
-                public boolean isValid() {
-                    return !te.isInvalid();
-                }
-
-                @Override
-                public World getWorld() {
-                    return te.getWorldObj();
-                }
-
-                @Override
-                public int getX() {
-                    return te.xCoord;
-                }
-
-                @Override
-                public int getY() {
-                    return te.yCoord;
-                }
-
-                @Override
-                public int getZ() {
-                    return te.zCoord;
-                }
-            };
-        }
+        if (target instanceof TileEntity) return new TileEntityPosProvider((TileEntity) target);
 
         throw new IllegalArgumentException("Invalid target object " + String.valueOf(target));
     }
@@ -91,6 +96,7 @@ public class AdapterWorldInventory implements IPeripheralAdapter, IAdapterWithCo
         final IWorldPosProvider provider = getProvider(target);
 
         final World world = provider.getWorld();
+        Preconditions.checkArgument(world != null, "Inventory has no world");
         return world.getTileEntity(
             provider.getX() + direction.offsetX,
             provider.getY() + direction.offsetY,

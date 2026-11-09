@@ -8,11 +8,12 @@ import openperipheral.api.adapter.IPeripheralAdapter;
 import openperipheral.api.adapter.method.Arg;
 import openperipheral.api.adapter.method.ReturnType;
 import openperipheral.api.adapter.method.ScriptCallable;
+import openperipheral.integration.ReflectionTargets;
 
 public class AdapterAutoDisenchanter implements IPeripheralAdapter {
 
     private final Class<?> CLASS = ReflectionHelper
-        .getClass("powercrystals.minefactoryreloaded.tile.machine.TileEntityAutoDisenchanter");
+        .getClass(ReflectionTargets.MinefactoryReloaded.TILE_AUTO_DISENCHANTER);
 
     private final Function0<Boolean> GET_REPEAT = MethodAccess.create(boolean.class, CLASS, "getRepeatDisenchant");
     private final Function1<Void, Boolean> SET_REPEAT = MethodAccess

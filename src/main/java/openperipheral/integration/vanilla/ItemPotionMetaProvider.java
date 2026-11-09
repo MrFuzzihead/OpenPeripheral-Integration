@@ -50,9 +50,11 @@ public class ItemPotionMetaProvider extends ItemStackMetaProviderSimple<ItemPoti
     public static Map<String, Object> getPotionInfo(int potionId) {
         if (potionId < 0 || potionId >= Potion.potionTypes.length) return null;
 
+        final Potion potion = Potion.potionTypes[potionId];
+        if (potion == null) return null;
+
         final Map<String, Object> result = Maps.newHashMap();
 
-        final Potion potion = Potion.potionTypes[potionId];
         result.put("name", potion.getName());
         result.put("instant", potion.isInstant());
         result.put("color", potion.getLiquidColor());

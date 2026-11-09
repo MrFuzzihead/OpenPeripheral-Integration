@@ -5,10 +5,14 @@ import net.minecraftforge.common.util.ForgeDirection;
 import com.google.common.collect.ImmutableSet;
 
 import appeng.api.config.Actionable;
+import appeng.api.networking.IGrid;
 import appeng.api.networking.IGridNode;
 import appeng.api.networking.crafting.ICraftingLink;
 import appeng.api.networking.crafting.ICraftingRequester;
 import appeng.api.networking.security.IActionHost;
+import appeng.api.networking.security.MachineSource;
+import appeng.api.networking.storage.IStorageGrid;
+import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.util.AECableType;
 import openperipheral.api.architecture.IArchitectureAccess;
@@ -34,7 +38,20 @@ public class CraftingRequester implements ICraftingRequester {
     // the event
     @Override
     public IAEItemStack injectCraftedItems(ICraftingLink link, IAEItemStack items, Actionable mode) {
-        return items;
+        final IGridNode node = original.getActionableNode();
+        if (node == null) return items;
+
+        final IGrid grid = node.getGrid();
+        if (grid == null) return items;
+
+        final IStorageGrid storage = grid.getCache(IStorageGrid.class);
+        if (storage == null) return items;
+
+        final IMEMonitor<IAEItemStack> monitor = storage.getItemInventory();
+        if (monitor == null) return items;
+
+        // Returns the part that could not be injected (null when everything fit).
+        return monitor.injectItems(items, mode, new MachineSource(original));
     }
 
     // We broadcast the two possible events to the computer, nothing fancy about it.
@@ -46,10 +63,10 @@ public class CraftingRequester implements ICraftingRequester {
     // This method should never be called on our instance since it's never
     // really part of the ME grid in the first place. The only method that
     // would get called is the one from the original version; we can safely
-    // ignore this method and just return null.
+    // ignore this method and return an empty set (AE2 iterates it).
     @Override
     public ImmutableSet<ICraftingLink> getRequestedJobs() {
-        return null;
+        return ImmutableSet.of();
     }
 
     // The following methods are inherited by ICraftingRequester from

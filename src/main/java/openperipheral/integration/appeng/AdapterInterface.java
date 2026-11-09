@@ -29,11 +29,12 @@ import openperipheral.api.adapter.method.ScriptCallable;
 import openperipheral.api.architecture.IArchitectureAccess;
 import openperipheral.api.converter.IConverter;
 import openperipheral.api.helpers.Index;
+import openperipheral.integration.ReflectionTargets;
 import openperipheral.integration.vanilla.ItemFingerprint;
 
 public class AdapterInterface extends AdapterGridBase {
 
-    private final Class<?> CLASS = ReflectionHelper.getClass("appeng.tile.misc.TileInterface");
+    private final Class<?> CLASS = ReflectionHelper.getClass(ReflectionTargets.AppEng.TILE_INTERFACE);
 
     @Override
     public Class<?> getTargetClass() {
@@ -55,6 +56,7 @@ public class AdapterInterface extends AdapterGridBase {
         @Arg(name = "cpu", description = "The name of the CPU you want to use") String wantedCpuName) {
         ICraftingGrid craftingGrid = getCraftingGrid(host);
         if (quantity == null) quantity = 1L;
+        Preconditions.checkArgument(quantity > 0, "Quantity must be positive");
 
         ICraftingCPU wantedCpu = findCpu(craftingGrid, wantedCpuName);
 
@@ -171,8 +173,7 @@ public class AdapterInterface extends AdapterGridBase {
 
     private static ICraftingCPU findCpu(ICraftingGrid craftingGrid, String cpuName) {
         if (cpuName != null) {
-            for (ICraftingCPU cpu : craftingGrid.getCpus()) if (cpu.getName()
-                .equals(cpuName)) return cpu;
+            for (ICraftingCPU cpu : craftingGrid.getCpus()) if (cpuName.equals(cpu.getName())) return cpu;
         }
 
         return null;

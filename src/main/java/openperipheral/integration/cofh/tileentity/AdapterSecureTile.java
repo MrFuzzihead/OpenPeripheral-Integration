@@ -25,7 +25,7 @@ public class AdapterSecureTile implements IPeripheralAdapter {
         return tile.getOwnerName();
     }
 
-    @ScriptCallable(description = "Gets the owner of the machine.", returnTypes = ReturnType.STRING)
+    @ScriptCallable(description = "Gets the owner of the machine.", returnTypes = ReturnType.OBJECT)
     public GameProfile getOwner(ISecurable tile) {
         return tile.getOwner();
     }

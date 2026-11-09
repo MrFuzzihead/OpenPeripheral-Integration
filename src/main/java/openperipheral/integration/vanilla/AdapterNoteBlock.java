@@ -33,17 +33,22 @@ public class AdapterNoteBlock implements IPeripheralAdapter {
         noteblock.triggerNote(noteblock.getWorldObj(), noteblock.xCoord, noteblock.yCoord, noteblock.zCoord);
     }
 
+    /** Wraps an arbitrary note number into the valid 0..24 range. */
+    static byte normalizePitch(int value) {
+        return (byte) Math.floorMod(value, 25);
+    }
+
     @ScriptCallable(description = "Set the note on the noteblock", returnTypes = { ReturnType.BOOLEAN })
     public boolean setPitch(TileEntityNote noteblock,
-        @Arg(name = "note", description = "The note you want. From 0 to 25") int newNote) {
+        @Arg(name = "note", description = "The note you want. From 0 to 24, other values wrap") int newNote) {
         final byte oldNote = noteblock.note;
-        noteblock.note = (byte) (newNote % 25);
         if (!net.minecraftforge.common.ForgeHooks.onNoteChange(noteblock, oldNote)) return false;
+
+        noteblock.note = normalizePitch(newNote);
         noteblock.markDirty();
         return true;
     }
 
-    @Asynchronous
     @ScriptCallable(returnTypes = ReturnType.NUMBER, description = "Get the note currently set on this noteblock")
     public byte getNote(TileEntityNote noteblock) {
         return noteblock.note;

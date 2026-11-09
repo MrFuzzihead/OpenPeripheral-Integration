@@ -8,11 +8,11 @@ import openperipheral.api.adapter.IPeripheralAdapter;
 import openperipheral.api.adapter.method.Arg;
 import openperipheral.api.adapter.method.ReturnType;
 import openperipheral.api.adapter.method.ScriptCallable;
+import openperipheral.integration.ReflectionTargets;
 
 public class AdapterChunkLoader implements IPeripheralAdapter {
 
-    private final Class<?> CLASS = ReflectionHelper
-        .getClass("powercrystals.minefactoryreloaded.tile.machine.TileEntityChunkLoader");
+    private final Class<?> CLASS = ReflectionHelper.getClass(ReflectionTargets.MinefactoryReloaded.TILE_CHUNK_LOADER);
 
     private final Function0<Short> GET_RADIUS = MethodAccess.create(short.class, CLASS, "getRadius");
     private final Function1<Void, Short> SET_RADIUS = MethodAccess.create(void.class, CLASS, short.class, "setRadius");

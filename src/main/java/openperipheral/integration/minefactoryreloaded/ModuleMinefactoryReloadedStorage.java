@@ -4,11 +4,12 @@ import openmods.Mods;
 import openmods.integration.Conditions;
 import openperipheral.integration.CustomIntegrationModule;
 import openperipheral.integration.OpcAccess;
+import openperipheral.integration.ReflectionTargets;
 
 public class ModuleMinefactoryReloadedStorage extends CustomIntegrationModule {
 
     public ModuleMinefactoryReloadedStorage() {
-        super(Conditions.classExists("powercrystals.minefactoryreloaded.api.IDeepStorageUnit"));
+        super(Conditions.classExists(ReflectionTargets.MinefactoryReloaded.DEEP_STORAGE_UNIT_API));
     }
 
     @Override

@@ -8,11 +8,11 @@ import openperipheral.api.adapter.IPeripheralAdapter;
 import openperipheral.api.adapter.method.Arg;
 import openperipheral.api.adapter.method.ReturnType;
 import openperipheral.api.adapter.method.ScriptCallable;
+import openperipheral.integration.ReflectionTargets;
 
 public class AdapterAutoSpawner implements IPeripheralAdapter {
 
-    private final Class<?> CLASS = ReflectionHelper
-        .getClass("powercrystals.minefactoryreloaded.tile.machine.TileEntityAutoSpawner");
+    private final Class<?> CLASS = ReflectionHelper.getClass(ReflectionTargets.MinefactoryReloaded.TILE_AUTO_SPAWNER);
 
     private final Function0<Boolean> GET_SPAWN_EXACT = MethodAccess.create(boolean.class, CLASS, "getSpawnExact");
     private final Function1<Void, Boolean> SET_SPAWN_EXACT = MethodAccess

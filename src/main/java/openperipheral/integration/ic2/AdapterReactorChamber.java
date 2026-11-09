@@ -4,12 +4,10 @@ import com.google.common.base.Preconditions;
 
 import ic2.api.reactor.IReactor;
 import ic2.api.reactor.IReactorChamber;
-import openperipheral.api.adapter.Asynchronous;
 import openperipheral.api.adapter.IPeripheralAdapter;
 import openperipheral.api.adapter.method.ReturnType;
 import openperipheral.api.adapter.method.ScriptCallable;
 
-@Asynchronous
 public class AdapterReactorChamber implements IPeripheralAdapter {
 
     @Override
@@ -24,7 +22,7 @@ public class AdapterReactorChamber implements IPeripheralAdapter {
 
     private static IReactor getReactor(IReactorChamber chamber) {
         IReactor reactor = chamber.getReactor();
-        Preconditions.checkNotNull(reactor, "No reactor");
+        Preconditions.checkArgument(reactor != null, "No reactor");
         return reactor;
     }
 

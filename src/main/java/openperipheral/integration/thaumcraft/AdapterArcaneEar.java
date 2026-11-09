@@ -7,11 +7,12 @@ import openperipheral.api.adapter.IPeripheralAdapter;
 import openperipheral.api.adapter.method.Arg;
 import openperipheral.api.adapter.method.ReturnType;
 import openperipheral.api.adapter.method.ScriptCallable;
+import openperipheral.integration.ReflectionTargets;
 
 @Asynchronous
 public class AdapterArcaneEar implements IPeripheralAdapter {
 
-    private final Class<?> CLASS = ReflectionHelper.getClass("thaumcraft.common.tiles.TileSensor");
+    private final Class<?> CLASS = ReflectionHelper.getClass(ReflectionTargets.Thaumcraft.TILE_SENSOR);
 
     private final FieldAccess<Byte> NOTE = FieldAccess.create(CLASS, "note");
     private final FieldAccess<Byte> TONE = FieldAccess.create(CLASS, "tone");

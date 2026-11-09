@@ -8,11 +8,11 @@ import openperipheral.api.adapter.IPeripheralAdapter;
 import openperipheral.api.adapter.method.Arg;
 import openperipheral.api.adapter.method.ReturnType;
 import openperipheral.api.adapter.method.ScriptCallable;
+import openperipheral.integration.ReflectionTargets;
 
 public class AdapterEjector implements IPeripheralAdapter {
 
-    private final Class<?> CLASS = ReflectionHelper
-        .getClass("powercrystals.minefactoryreloaded.tile.machine.TileEntityEjector");
+    private final Class<?> CLASS = ReflectionHelper.getClass(ReflectionTargets.MinefactoryReloaded.TILE_EJECTOR);
 
     private final Function0<Boolean> GET_IS_WHITELIST = MethodAccess.create(boolean.class, CLASS, "getIsWhitelist");
     private final Function1<Void, Boolean> SET_IS_WHITELIST = MethodAccess

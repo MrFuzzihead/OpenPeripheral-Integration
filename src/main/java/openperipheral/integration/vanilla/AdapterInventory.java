@@ -34,6 +34,12 @@ public class AdapterInventory implements IPeripheralAdapter {
 
     private static final int ANY_SLOT = -1;
 
+    private static IInventory requireInventory(IInventory target) {
+        final IInventory inventory = InventoryUtils.getInventory(target);
+        Preconditions.checkArgument(inventory != null, "Invalid inventory");
+        return inventory;
+    }
+
     @Override
     public Class<?> getTargetClass() {
         return IInventory.class;
@@ -44,22 +50,22 @@ public class AdapterInventory implements IPeripheralAdapter {
         return "inventory";
     }
 
+    @Asynchronous(false)
     @ScriptCallable(returnTypes = ReturnType.STRING, description = "Get the name of this inventory")
     public String getInventoryName(IInventory target) {
-        IInventory inventory = InventoryUtils.getInventory(target);
-        return inventory != null ? inventory.getInventoryName() : null;
+        return requireInventory(target).getInventoryName();
     }
 
+    @Asynchronous(false)
     @ScriptCallable(returnTypes = ReturnType.NUMBER, description = "Get the size of this inventory")
     public int getInventorySize(IInventory target) {
-        IInventory inventory = InventoryUtils.getInventory(target);
-        return inventory != null ? inventory.getSizeInventory() : 0;
+        return requireInventory(target).getSizeInventory();
     }
 
     @Asynchronous(false)
     @ScriptCallable(description = "Condense and tidy the stacks in an inventory")
     public void condenseItems(IInventory target) {
-        IInventory inventory = InventoryUtils.getInventory(target);
+        IInventory inventory = requireInventory(target);
         List<ItemStack> stacks = Lists.newArrayList();
         for (int i = 0; i < inventory.getSizeInventory(); i++) {
             ItemStack sta = inventory.getStackInSlot(i);
@@ -78,9 +84,8 @@ public class AdapterInventory implements IPeripheralAdapter {
     public void swapStacks(IInventory target, @Arg(name = "from", description = "The first slot") Index fromSlot,
         @Arg(name = "to", description = "The other slot") Index intoSlot,
         @Optionals @Arg(name = "fromDirection") ForgeDirection fromDirection,
-        @Arg(name = "fromDirection") ForgeDirection toDirection) {
-        IInventory inventory = InventoryUtils.getInventory(target);
-        Preconditions.checkNotNull(inventory, "Invalid target!");
+        @Arg(name = "toDirection") ForgeDirection toDirection) {
+        IInventory inventory = requireInventory(target);
         final int size = inventory.getSizeInventory();
         fromSlot.checkElementIndex("first slot id", size);
         intoSlot.checkElementIndex("second slot id", size);
@@ -101,7 +106,7 @@ public class AdapterInventory implements IPeripheralAdapter {
         @Optionals @Arg(
             name = "proxy",
             description = "If true, method will return proxy instead of computing whole table") Boolean proxy) {
-        IInventory inventory = InventoryUtils.getInventory(target);
+        IInventory inventory = requireInventory(target);
         slot.checkElementIndex("slot id", inventory.getSizeInventory());
         ItemStack stack = inventory.getStackInSlot(slot.value);
         return proxy == Boolean.TRUE ? OpcAccess.itemStackMetaBuilder.createProxy(stack) : stack;
@@ -112,8 +117,8 @@ public class AdapterInventory implements IPeripheralAdapter {
         @Optionals @Arg(
             name = "proxy",
             description = "If false, method will compute whole table, instead of returning proxy") Boolean proxy) {
-        final IInventory inventory = InventoryUtils.getInventory(target);
-        Map<Index, Object> result = Maps.newHashMap();
+        final IInventory inventory = requireInventory(target);
+        Map<Index, Object> result = Maps.newLinkedHashMap();
 
         for (int i = 0; i < inventory.getSizeInventory(); i++) {
             ItemStack stack = inventory.getStackInSlot(i);
@@ -127,12 +132,13 @@ public class AdapterInventory implements IPeripheralAdapter {
     @Asynchronous(false)
     @ScriptCallable(description = "Destroy a stack")
     public void destroyStack(IInventory target, @Arg(name = "slotNumber", description = "The slot number") Index slot) {
-        IInventory inventory = InventoryUtils.getInventory(target);
+        IInventory inventory = requireInventory(target);
         slot.checkElementIndex("slot id", inventory.getSizeInventory());
         inventory.setInventorySlotContents(slot.value, null);
         inventory.markDirty();
     }
 
+    @Asynchronous(false)
     @ScriptCallable(returnTypes = ReturnType.TABLE, description = "Get full stack information from id and/or damage")
     public ItemStack expandStack(IInventory target, @Arg(name = "stack") ItemStack itemStack) {
         return itemStack;
