@@ -68,7 +68,7 @@ jobs:
       - name: Install Xvfb and Mesa
         run: |
           sudo apt-get update
-          sudo apt-get install -y xvfb libgl1-mesa-dri libgl1-mesa-glx
+          sudo apt-get install -y xvfb libgl1-mesa-dri libgl1 libglx-mesa0
 
       - name: Run client game test (opens the real config GUI)
         run: |
