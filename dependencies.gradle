@@ -34,11 +34,12 @@
  * For more details, see https://docs.gradle.org/8.0.1/userguide/java_library_plugin.html#sec:java_library_configurations_graph
  */
 dependencies {
-    runtimeOnlyNonPublishable("com.github.GTNewHorizons:NotEnoughItems:2.9.1-GTNH:dev")
+    runtimeOnlyNonPublishable("com.github.GTNewHorizons:NotEnoughItems:2.9.3-GTNH:dev")
 
-    api("com.github.MrFuzzihead:Computercraft-Legacy:3.3.0:dev")
+    api("com.github.MrFuzzihead:Computercraft-Legacy:3.3.1:dev")
+    // GTNH keeps OpenModsLib at 0.10.x (other mods break on 0.11); 0.10.15 and 0.11.0 are the same commit.
     api("com.github.GTNewHorizons:OpenModsLib:0.10.15:dev")
-    compileOnly("com.github.GTNewHorizons:Applied-Energistics-2-Unofficial:rv3-beta-1097-GTNH:dev")
+    compileOnly("com.github.GTNewHorizons:Applied-Energistics-2-Unofficial:rv3-beta-1099-GTNH:dev")
     compileOnly("com.github.GTNewHorizons:BuildCraft:7.2.0:dev")
     compileOnly("curse.maven:cofh-core-69162:2388751")
     compileOnly("com.github.GTNewHorizons:ForestryMC:4.12.0:dev")
@@ -48,7 +49,15 @@ dependencies {
     compileOnly("com.github.GTNewHorizons:Railcraft:9.18.0:dev")
     compileOnly("curse.maven:minefactory-reloaded-66672:2277486")
     compileOnly("curse.maven:Mystcraft-224599:2417044")
-    api("com.github.MrFuzzihead:OpenPeripheral:2.1.0:dev") {
+    api("com.github.MrFuzzihead:OpenPeripheral:2.1.1:dev") {
         exclude(group: "com.github.MrFuzzihead", module: "Computercraft-Legacy")
     }
+
+    // JUnit 4.13.2 is the newest 4.x release. Mockito 4.11.0 is the newest Mockito that still supports
+    // a Java 8 runtime (Mockito 5 requires Java 11); the test task deliberately runs on Java 8 so the
+    // production bytecode target is exercised by the JVM the mod actually supports.
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.mockito:mockito-core:4.11.0")
+    // Needed to mock final classes (Minecraft's ItemStack and friends) on Java 8.
+    testImplementation("org.mockito:mockito-inline:4.11.0")
 }

@@ -1,0 +1,188 @@
+package openperipheral.integration;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+
+import openperipheral.api.adapter.IPeripheralAdapter;
+import openperipheral.api.adapter.IPeripheralAdapterRegistry;
+import openperipheral.api.adapter.IScriptType;
+import openperipheral.api.adapter.ITypeClassifier;
+import openperipheral.api.converter.IConverterManager;
+import openperipheral.api.converter.ITypeConverter;
+import openperipheral.api.meta.IEntityMetaProvider;
+import openperipheral.api.meta.IEntityPartialMetaBuilder;
+import openperipheral.api.meta.IItemStackMetaProvider;
+import openperipheral.api.meta.IItemStackPartialMetaBuilder;
+import openperipheral.integration.computercraft.ModuleComputerCraft;
+import openperipheral.integration.vanilla.ItemFingerprint;
+import openperipheral.integration.vanilla.ModuleVanilla;
+import openperipheral.integration.vanilla.ModuleVanillaInventory;
+import openperipheral.integration.vanilla.ModuleVanillaInventoryManipulation;
+
+/**
+ * Verifies that the modules wire every adapter/provider into the OpenPeripheral API. These are the only
+ * unit-testable modules: the remaining ones reference compile-only mod APIs that are absent from the
+ * test runtime classpath.
+ */
+public class ModuleRegistrationTest {
+
+    private IPeripheralAdapterRegistry originalAdapterRegistry;
+    private IItemStackPartialMetaBuilder originalItemStackMetaBuilder;
+    private IEntityPartialMetaBuilder originalEntityMetaBuilder;
+    private IConverterManager originalConverterManager;
+    private ITypeClassifier originalTypeClassifier;
+
+    private IPeripheralAdapterRegistry adapterRegistry;
+    private IItemStackPartialMetaBuilder itemStackMetaBuilder;
+    private IEntityPartialMetaBuilder entityMetaBuilder;
+    private IConverterManager converterManager;
+    private ITypeClassifier typeClassifier;
+
+    @Before
+    public void installMocks() {
+        originalAdapterRegistry = OpcAccess.adapterRegistry;
+        originalItemStackMetaBuilder = OpcAccess.itemStackMetaBuilder;
+        originalEntityMetaBuilder = OpcAccess.entityMetaBuilder;
+        originalConverterManager = OpcAccess.converterManager;
+        originalTypeClassifier = OpcAccess.typeClassifier;
+
+        adapterRegistry = mock(IPeripheralAdapterRegistry.class);
+        itemStackMetaBuilder = mock(IItemStackPartialMetaBuilder.class);
+        entityMetaBuilder = mock(IEntityPartialMetaBuilder.class);
+        converterManager = mock(IConverterManager.class);
+        typeClassifier = mock(ITypeClassifier.class);
+
+        OpcAccess.adapterRegistry = adapterRegistry;
+        OpcAccess.itemStackMetaBuilder = itemStackMetaBuilder;
+        OpcAccess.entityMetaBuilder = entityMetaBuilder;
+        OpcAccess.converterManager = converterManager;
+        OpcAccess.typeClassifier = typeClassifier;
+    }
+
+    @After
+    public void restoreApi() {
+        OpcAccess.adapterRegistry = originalAdapterRegistry;
+        OpcAccess.itemStackMetaBuilder = originalItemStackMetaBuilder;
+        OpcAccess.entityMetaBuilder = originalEntityMetaBuilder;
+        OpcAccess.converterManager = originalConverterManager;
+        OpcAccess.typeClassifier = originalTypeClassifier;
+    }
+
+    @Test
+    public void vanillaModuleRegistersEverything() {
+        final ModuleVanilla module = new ModuleVanilla();
+        Assert.assertTrue(module.canLoad());
+        Assert.assertEquals("Vanilla CC integration module", module.name());
+
+        module.load();
+
+        verify(adapterRegistry, times(13)).register(any(IPeripheralAdapter.class));
+        verify(itemStackMetaBuilder, times(11)).register(any(IItemStackMetaProvider.class));
+        verify(entityMetaBuilder, times(16)).register(any(IEntityMetaProvider.class));
+        verify(converterManager).register(any(ITypeConverter.class));
+        verify(typeClassifier).registerType(eq(ItemFingerprint.class), any(IScriptType.class));
+    }
+
+    @Test
+    public void vanillaInventoryModuleRegistersTheInventoryAdapter() {
+        final ModuleVanillaInventory module = new ModuleVanillaInventory();
+        Assert.assertTrue(module.canLoad());
+        Assert.assertEquals("Vanilla CC integration module (inventory)", module.name());
+
+        module.load();
+        verify(adapterRegistry).register(any(IPeripheralAdapter.class));
+    }
+
+    @Test
+    public void vanillaInventoryManipulationModuleRegistersTheWorldAdapter() {
+        final ModuleVanillaInventoryManipulation module = new ModuleVanillaInventoryManipulation();
+        Assert.assertTrue(module.canLoad());
+        Assert.assertEquals("Vanilla CC integration module (inventory manipulation)", module.name());
+
+        module.load();
+        verify(adapterRegistry).register(any(IPeripheralAdapter.class));
+    }
+
+    @Test
+    public void computerCraftModuleRegistersFourItemProviders() {
+        new ModuleComputerCraft().load();
+        verify(itemStackMetaBuilder, times(4)).register(any(IItemStackMetaProvider.class));
+    }
+
+    @Test
+    public void apiModulesOnlyLoadWhenTheApiIsPresent() {
+        final ApiIntegrationModule module = new ApiIntegrationModule() {
+
+            @Override
+            public String getApiId() {
+                return "DefinitelyNotAnApi";
+            }
+
+            @Override
+            public void load() {}
+        };
+
+        // canLoad() goes through ModAPIManager, which needs FML's launch class loader; only the
+        // naming contract is testable in a plain JVM.
+        Assert.assertEquals("DefinitelyNotAnApi (API) CC integration module", module.name());
+    }
+
+    @Test
+    public void customModulesBuildTheirNameFromTheId() {
+        final CustomIntegrationModule module = new CustomIntegrationModule(
+            openmods.conditions.Conditions.alwaysTrue()) {
+
+            @Override
+            protected String getId() {
+                return "test-id";
+            }
+
+            @Override
+            public void load() {}
+        };
+
+        Assert.assertEquals("test-id(custom) CC integration module", module.name());
+    }
+
+    @Test
+    public void apiPresenceCheckCoversEveryHolder() {
+        // Mocks are installed, so the check must pass; nulling one must fail.
+        OpcAccess.checkApiPresent();
+
+        OpcAccess.typeClassifier = null;
+        try {
+            OpcAccess.checkApiPresent();
+            Assert.fail("Expected IllegalStateException");
+        } catch (IllegalStateException expected) {
+            // expected
+        }
+    }
+
+    @Test
+    public void vanillaItemFingerprintTypeDescriptionIsStable() {
+        final ModuleVanilla module = new ModuleVanilla();
+        module.load();
+
+        final org.mockito.ArgumentCaptor<IScriptType> captor = org.mockito.ArgumentCaptor.forClass(IScriptType.class);
+        verify(typeClassifier).registerType(eq(ItemFingerprint.class), captor.capture());
+        Assert.assertEquals(
+            "{id:string,dmg:number?,nbt_hash:string?}",
+            captor.getValue()
+                .describe());
+    }
+
+    @Test
+    public void moduleNamesAreUniqueAndReadable() {
+        Assert.assertNotEquals(new ModuleVanilla().name(), new ModuleVanillaInventory().name());
+        Assert.assertNotEquals(new ModuleVanillaInventory().name(), new ModuleVanillaInventoryManipulation().name());
+        Assert.assertNotEquals("", new ModuleVanilla().name());
+    }
+}

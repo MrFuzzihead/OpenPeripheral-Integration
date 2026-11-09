@@ -1,0 +1,409 @@
+# OpenPeripheral-Integration — code review & backlog
+
+Review of the `feature-Refactors` tree after the 2026-11 dependency/build updates and the new test
+infrastructure. Everything below was verified against the code in this repository; where a finding is
+an inference from a third-party contract (AE2, Thaumcraft, Forestry, …) it is marked **verify**.
+
+Test/build facts at the time of writing:
+
+| Item | Value |
+|------|-------|
+| `./gradlew test` | **75 tests / 7 classes, all green** |
+| JaCoCo | **21.3 % line** (508/2390), **18.6 % branch** (121/650) |
+| Coverage floor enforced by `check` | 18 % line / 10 % branch |
+| `./gradlew check` | green (compile, tests, JaCoCo verification, Spotless, Checkstyle) |
+| `./gradlew gameTestServer` | green — `GAMETEST_INT_ADAPTERS_OK`, `GAMETEST_INT_LUA_OK`, `OPENPERIPHERAL_INTEGRATION_GAMETEST_OK` |
+| Unit-test JVM | Java 8 toolchain (same bytecode target the mod ships) |
+| Game-test JVM | Java 25 via `runServer25` |
+
+---
+
+## 1. Dependency audit
+
+`./gradlew updateDependencies` was used as a first pass, then corrected by hand. **It is not safe to
+trust blindly** — it compares version strings lexicographically and it does not honour the OpenModsLib
+pin.
+
+| Dependency | Was | Now | Notes |
+|---|---|---|---|
+| NotEnoughItems | 2.9.1-GTNH | **2.9.3-GTNH** | dev-run only (`runtimeOnlyNonPublishable`) |
+| Applied Energistics 2 Unofficial | rv3-beta-1097-GTNH | **rv3-beta-1099-GTNH** | `updateDependencies` “updated” to **999**, a downgrade caused by lexical sorting; reverted to the real latest |
+| BuildCraft | 7.2.0 | 7.2.0 | already latest on GTNH Maven |
+| ForestryMC | 4.12.0 | 4.12.0 | already latest |
+| Tinkers Mechworks | 0.5.0 | 0.5.0 | already latest |
+| Railcraft | 9.18.0 | 9.18.0 | already latest |
+| IndustrialCraft 2 | 2.2.828-experimental | 2.2.828-experimental | last 1.7.10 experimental build; GTNH’s buildscript substitutes `net.industrial-craft:industrialcraft-2` with `curse.maven:ic2-242638:2353971` (verified with `dependencyInsight`). Effectively a Curse dependency, left untouched as requested |
+| Thaumcraft | 4.2.3.5 | 4.2.3.5 | final TC4 release for 1.7.10 |
+| OpenModsLib | 0.10.15 | **0.10.15 (pinned)** | the updater wanted 0.11.0. 0.10.15 and 0.11.0 are the same commit, but 0.11.0 makes FML demand `[0.11.0,0.12.0)`, which refuses to load in packs shipping 0.10.15. A comment now documents the pin |
+| ComputerCraft-Legacy | 3.3.1 | 3.3.1 | already updated by you |
+| OpenPeripheral | 2.1.1 | 2.1.1 | already updated by you |
+| CurseMaven (CoFH core, MFR, Mystcraft) | unchanged | unchanged | excluded per request |
+| Buildscript (`gtnhsettingsconvention`) | 2.0.33 | 2.0.34 | already updated by you |
+
+Recommendations:
+
+- Re-run `updateDependencies` only with a diff review, and keep the OpenModsLib comment; otherwise a
+  future run silently breaks pack compatibility.
+- `dependencies.gradle` still declares IC2 by its (dead) Maven coordinates; the substitution rule makes
+  it work, but a comment explaining that it resolves to Curse would save the next person an hour.
+- AE2/NEI bump compiled cleanly against this code (no API breakage).
+
+---
+
+## 2. Test & verification infrastructure added
+
+New/changed files:
+
+| Path | Purpose |
+|---|---|
+| `dependencies.gradle` | `testImplementation` JUnit 4.13.2, Mockito 4.11.0 + `mockito-inline` |
+| `addon.gradle.kts` | JaCoCo, Java 8 test toolchain, `gameTest` source set, `gameTestServer`, coverage floor |
+| `src/test/java/openperipheral/integration/**` | 75 headless tests across 7 classes |
+| `src/gameTest/java/openperipheral/integration/gametest/IntegrationGameTestMod.java` | non-shipped test mod: real provider, fake CC access/context, real ComputerCraft computer |
+| `src/gameTest/resources/openperipheralintegration/lua/peripheral_tests.lua` | Lua suite shared by the headless test and the in-game test |
+| `.github/workflows/game-test.yml` | CI job that boots a dedicated server and greps the markers |
+
+Commands:
+
+```sh
+./gradlew test                        # 75 JUnit tests (Java 8)
+./gradlew jacocoTestReport            # build/reports/jacoco/test/html
+./gradlew jacocoTestCoverageVerification
+./gradlew check                       # tests + coverage floor + Spotless + Checkstyle
+mkdir -p run/server && echo "eula=true" > run/server/eula.txt
+./gradlew gameTestServer              # real server + real ComputerCraft Lua
+```
+
+Design notes:
+
+- Tests run on a **Java 8 toolchain** because Mockito 4/ByteBuddy is not guaranteed on Java 25; the
+  production bytecode is Java 8 anyway (Jabel).
+- `src/gameTest/resources` is also added as a test resource root so the Lua suite has exactly one copy
+  and can be compiled/executed headlessly by `LuaProgramTest` with ComputerCraft’s Cobalt interpreter.
+- Minecraft’s global registries (`Items.*`, `Blocks.*`, `GameData`, `ForgeHooks`, `FluidRegistry`,
+  `OreDictionary`, `ColorUtils`) are **not** usable without FML’s launch class loader. Tests construct
+  items directly (`new ItemSword(...)`, `new ItemArmor(...)`) and avoid those statics; that limitation
+  is the main reason coverage is 21 % rather than much higher.
+- The in-game Lua test uses `ServerComputer#setPeripheral(2, …)`, so it exercises **this mod’s**
+  peripheral directly instead of being shadowed by ComputerCraft’s native `inventory` provider (see
+  the README note about CC 3.3 generic peripherals).
+
+Coverage gaps are listed in §8.
+
+---
+
+## 3. Critical / high-severity bugs
+
+### 3.1 Thaumcraft integration module is registered twice — P0
+
+`OpenPeripheralIntegration.preInit` contains the `thaumcraft-mod` check twice:
+
+- `OpenPeripheralIntegration.java:122`
+- `OpenPeripheralIntegration.java:147`
+
+`Integration.addModule` from OpenModsLib is a plain `List#add` (verified against 0.10.15), so
+`ModuleThaumcraft` is added **and loaded twice**. The second load registers `AdapterJar`,
+`AdapterBrainJar`, `AdapterArcaneBore`, `AdapterArcaneEar` and `AdapterDeconstructor` a second time.
+Depending on how the OpenPeripheral registry deduplicates, this produces duplicate peripheral methods,
+duplicate documentation entries, or registry warnings. Delete the second block.
+
+### 3.2 CoFH inventory adapter exposes no methods — P0
+
+`cofh/inventory/AdapterInventoryHandler.java`: all four methods are package-private and none carries
+`@ScriptCallable`:
+
+```java
+List<ItemStack> getInventoryContents(IInventoryHandler target, @Arg(name = "from") ForgeDirection from)
+int getSizeInventory(IInventoryHandler target, ...)
+boolean isEmpty(IInventoryHandler target, ...)
+boolean isFull(IInventoryHandler target, ...)
+```
+
+OpenPeripheral builds the peripheral method list from `@ScriptCallable`-annotated methods; **none** of these
+methods is annotated (they are also package-private), so the entire `CoFHAPI|inventory` module is
+silently a no-op. Make the methods public and annotate them
+(`getInventoryContents` → `ReturnType.TABLE`, `getSizeInventory` → `NUMBER`, `isEmpty`/`isFull` →
+`BOOLEAN`), or delete the module if CoFH’s inventory API is considered obsolete.
+
+### 3.3 AE2 crafting reports full amounts as “missing” — P1
+
+`appeng/CraftingCallback.java:95`: `missingStack` is copied from `needed` but its size is never set to
+`missing`:
+
+```java
+long missing = needed.getStackSize();
+if (extracted != null) missing -= extracted.getStackSize();
+
+if (missing > 0) {
+    IAEItemStack missingStack = needed.copy();
+    missingItems.add(missingStack);   // stack size = full required amount, not `missing`
+}
+```
+
+The `"missing_items"` event therefore over-reports. Add
+`missingStack.setStackSize(missing);` before adding.
+
+Also: `converter.fromJava(this.requestedStack)` is called on an object that is **already converted** in
+the constructor (`requestedStack = converter.fromJava(requestedStack)`), so the signal payload is
+double-converted. Send `requestedStack` directly.
+
+### 3.4 AE2 crafting request contract is violated — P1 (verify)
+
+`appeng/CraftingRequester.java`:
+
+- `getRequestedJobs()` returns `null`; AE2 iterates this set when a link is cancelled/invalidated. Return
+  `ImmutableSet.of()`.
+- `injectCraftedItems(...)` returns `items`, i.e. “none of the crafted items were accepted”. The class
+  comment claims crafted items go straight back into the AE network, but the contract for the return
+  value is *the remainder that could not be injected*. As written, finished crafts stay in the crafting
+  CPU output instead of the network. Either inject with `monitor.injectItems(...)` and return the true
+  remainder (or `null`), or drop the claim from the comment. Confirm against the AE2 version pinned in
+  `dependencies.gradle`.
+
+### 3.5 `ModuleVanilla.listEnchantments` throws on out-of-range enchantment ids — P1
+
+`ModuleVanilla.java:97` indexes `Enchantment.enchantmentsList[id]` without a bounds check. A corrupted
+or modded NBT tag with a negative/large id crashes the metadata call with `AIOOBE` (reproduced in the
+test suite while writing this review). Guard with `id >= 0 && id < Enchantment.enchantmentsList.length`.
+The same array can contain `null` entries; that case is already handled.
+
+### 3.6 `AdapterSign.setText` rejects exactly four lines — P1
+
+`AdapterSign.java:80`:
+
+```java
+Preconditions.checkArgument(newLength >= 0 && newLength < maxLength, "Value must be in range [1,%s]", maxLength);
+```
+
+`maxLength` is `signText.length == 4`, so `setText("a\nb\nc\nd")` — the most natural use of a sign — is
+rejected. The lower bound is also wrong (`>= 0` allows 0 lines). Use
+`newLength >= 1 && newLength <= maxLength`.
+
+### 3.7 `AdapterNoteBlock.setPitch` mutates before the Forge hook can veto — P1
+
+`AdapterNoteBlock.java:40` writes the note **before** `ForgeHooks.onNoteChange(...)` and returns `false`
+without restoring the old value. A mod vetoing the change leaves the tile entity desynchronised from
+the client (the hook exists precisely to allow this). Also:
+
+- the Javadoc says “From 0 to 25”, but 25 wraps to 0; the usable range is 0–24;
+- negative input is accepted and stored as a negative byte (`%` keeps the sign).
+  Clamp with `Math.floorMod(newNote, 25)` and only assign after the hook approves.
+
+---
+
+## 4. Correctness & robustness issues (P2)
+
+| # | Location | Issue |
+|---|---|---|
+| 1 | `AdapterSign.setLines` | Does not truncate lines to 15 chars (unlike `setLine`); a long string overflows the client sign renderer. It also does not fire `ForgeHooks` (it does not need to) and treats `null` elements as empty only via `Strings.nullToEmpty`. |
+| 2 | `AdapterInventory.java:105,118,131`, `condenseItems` | `InventoryUtils.getInventory(target)` is dereferenced without a null check in `getStackInSlot`, `getAllStacks`, `destroyStack` and `condenseItems`, while `getInventoryName`/`getInventorySize` do check. `InventoryUtils.getInventory(IInventory)` currently returns the input for non-chests (and a large-chest wrapper for chests), so this is a defensive-consistency issue rather than a proven crash — but the split invites a future NPE. |
+| 3 | `AdapterInventory.swapStacks` | The second `@Arg` is named `fromDirection` (copy/paste); generated Lua docs are wrong for `toDirection`. |
+| 4 | `AdapterInventory.getStackInSlot` vs `getAllStacks` | Defaults are inconsistent: `getStackInSlot` returns a raw `ItemStack` unless `proxy == TRUE`, `getAllStacks` returns proxies unless `proxy == FALSE`. Document or align. |
+| 5 | `AdapterInventory.getAllStacks` | Uses `HashMap`, so slot order in the returned table is arbitrary; `LinkedHashMap` (or `Index`-sorted) is friendlier to Lua consumers. |
+| 6 | `AdapterWorldInventory.getProvider` | Allocates an anonymous `IWorldPosProvider` on every call; hoist a private static class (or a cached wrapper). `getNeighborTarget` also does not check that `getWorld()` is non-null. |
+| 7 | `AdapterWorldInventory.pushItem` | Unlike `pullItem`, it has no `otherTarget == target` guard; a self-referential world/TE can duplicate or eat items. |
+| 8 | `BurnTimeMetaProvider` | `canApply` and `getMeta` each call `TileEntityFurnace.getItemBurnTime(stack)`, which fires Forge’s fuel event twice per metadata lookup. Compute once (e.g. `getMeta` returning `null` for 0 instead of a separate `canApply`). |
+| 9 | `EnergyMetaProvider.getKey` | Returns `"energy_te"` for an **item** stack metadata provider; the `_te` suffix is misleading and differs from every other key. Renaming is a Lua API break; deprecate/alias instead. |
+| 10 | `AdapterTileSteamTurbine.getTurbineRotorStatus` | Divides by `item.getMaxDamage()`, which is 0 for unbreakable items → `Infinity` → `(int)` overflow → nonsensical negative percentage. Guard `maxDamage > 0`. |
+| 11 | `ItemFingerprint` | No `equals`/`hashCode` (each instance is unique), and `new UniqueIdentifier(id)` splits on `:` with no validation: a Lua table with `id = "stone"` throws `AIOOBE`; a failed registry lookup in the `Item`/`ItemStack` constructors produces `new UniqueIdentifier(null)` → NPE. Validate the id and use the two-argument `UniqueIdentifier(mod, name)` or a proper key class. The Javadoc still calls it “SearchNeedle”. |
+| 12 | `ConverterItemFingerprint` | `(String) nbtHash` is an unchecked cast; a non-string `nbt_hash` gives `ClassCastException` instead of a `LuaException`-friendly `IllegalArgumentException`. |
+| 13 | `AdapterGridBase` | `host.getGridNode(...).getGrid().getCache(...)` NPEs for unformed/unpowered AE2 blocks (grid node or grid is null). Every public AE2 method should throw a descriptive `IllegalStateException` instead. |
+| 14 | `AdapterInterface.findCpu` | `cpu.getName().equals(cpuName)` NPEs if a CPU has no name; use `cpuName.equals(cpu.getName())`. `requestCrafting` also accepts `qty <= 0` and passing `quantity = Long.MAX_VALUE` overflows the AE stack. |
+| 15 | `AdapterStorage.getCellStatus` | Does not validate `slot` against `getCellCount()`; relies on the AE2 implementation throwing `IndexOutOfBoundsException` (it may throw `AIOOBE`, which is caught, or nothing). Validate explicitly. |
+| 16 | `AdapterNetwork.getAvailableItems` | Unchecked `(Map<String,Object>) converter.fromJava(stack)`; if a converter returns anything else this is a `CCE` inside Lua. It also materialises the whole network into a list on every call — a large network can stall the computer thread. |
+| 17 | `FacadeMetaProvider` | Assumes `getBlocksForFacade(stack).length == getMetaValuesForFacade(stack).length`; a mismatched third-party facade gives `AIOOBE`. |
+| 18 | `AdapterArcaneBore` | `isWorking` NPEs if `hasPickaxe` is true but `getPick` returns null; `getPick` hard-codes slot 1 (Thaumcraft internal); a renamed/remapped field makes the `FieldAccess` initialisers fail at adapter construction. |
+| 19 | `AdapterElecticMachine` (typo) | `getProgress` divides by `MAX_ENERGY`; 0 gives `Infinity` → clamps to 100 %. Also, `CLASS` is `null` if IC2 renames the internal class, and the adapter instance is created during module load — a hard crash instead of a skipped adapter. |
+| 20 | `AdapterSecureTile` | `getOwner` is declared `ReturnType.STRING` but returns `GameProfile`; `getOwnerName`/`getOwner` descriptions are identical. |
+| 21 | `SecurityUtils.canModify` | NPEs if `ISecurable#getAccess()` returns null; CoFH tiles normally don’t, but a one-line null guard is cheap. |
+| 22 | `ItemPotionMetaProvider.getPotionInfo` | Range-checks the id but not `Potion.potionTypes[id] != null`; unused-but-in-range ids NPE on `potion.getName()`. |
+| 23 | `AdapterBeacon.getEffectName` | Constructs a throw-away `PotionEffect` just to get the name; `Potion.potionTypes[id].getName()` is enough and cannot throw on valid beacon effects. |
+| 24 | `ModuleVanilla` / `ModuleVanillaInventory` / `ModuleVanillaInventoryManipulation` | All three declare an unused, mutable `public static String DUMMY_VANILLA_MODID = "vanilla"`. Remove (it is not a mod id). |
+| 25 | `InventoryMetaProvider.wrapToProxyTable` | Hard-codes `slot + 1` for both architectures; correct for CC and OC (both are 1-based today), but the 1-based assumption is undocumented. |
+| 26 | `EntityLivingMetaProvider` | Exposes the same information twice: `potionEffects` (map `1..n` → effect name) and `potion_effects` (list of tables). One is redundant and confusing for script authors. |
+| 27 | `EntityLivingMetaProvider` (perf) | Performs a 10-block `rayTraceBlocks` on every metadata read; metadata is often requested in bulk (e.g. `getEntityMetadata` loops). Consider making `lookingAt` opt-in or throttled. |
+| 28 | `Mystcraft v2 NotebookWrapper.getSlotCount(int slot)` | Has an unused `slot` parameter; Lua callers must pass a slot for a value that ignores it. Change to `getSlotCount()` (breaking Lua signature — document it). |
+| 29 | `Mystcraft v1 NotebookIInventoryWrapper.decrStackSize` | When the stack reaches size 0 it calls `setInventorySlotContents(slot, stack)` with a zero-size stack instead of `null`; `getStackInSlotOnClosing` throws `UnsupportedOperationException`, and `markDirty` is a no-op. This wrapper violates the `IInventory` contract and can confuse hoppers/pipes. |
+| 30 | `Mystcraft v1 AdapterWritingDesk.pullNotebookPage` | Converts a 1-based `notebookSlot` with `notebookSlot - 1` while every other method takes an `Index`; a Lua `0` becomes `-1`. Validate/clamp. |
+| 31 | `Mystcraft v2 AdapterWritingDesk.pushNotebookPage` | `if (remains >= 0)` is always true; a fully inserted page calls `addPage` with a 0-size copy. Use `> 0`. |
+| 32 | `Mystcraft v2 createInventoryWrapper` | Throws `IllegalStateException` (`Preconditions.checkState`) for an empty/invalid slot; every other adapter reports `IllegalArgumentException`, which OpenPeripheral turns into a Lua error. Use `checkArgument`. |
+| 33 | `MystcraftAccess` | Log messages say “Mystraft” and “unavalable”; the catch-all `Exception` hides API bugs. |
+| 34 | `AdapterBeeHousing` | `getBeeChildren` exposes the misspelled `parentYpe` argument name (Lua docs), `alleleCompatator` is misspelled, `getBeeBreedingData` aborts the whole list with a `RuntimeException` if one mutation is malformed (skip + log instead), and `getMutations(false)` is fetched repeatedly. |
+| 35 | `ConverterIIndividual` | `conventers` is misspelled; `convertAllele` returns the literal `"missing"` for a null allele, which is indistinguishable from a legitimate species name; `describeIndividual` calls `hasEffect()` on every `IIndividual` (verify that all Forestry implementations support it). |
+| 36 | `OpenPeripheralIntegration` config key `buildcraft-api-tilenentity` | Typo in a persisted config key. Renaming would orphan existing configs; keep reading the old key and optionally migrate to `buildcraft-api-tileentity` (log migration). |
+| 37 | `ApiIntegrationModule.name()` / `ModIntegrationModule.name()` | Both produce “… (API) CC integration module” / “(mod) CC integration module” even for AE2/IC2/Railcraft — “CC” is wrong for non-ComputerCraft integrations and makes logs confusing. |
+| 38 | `AdapterInventoryHandler` (3.2) | All four methods are package-private and carry no `@ScriptCallable`; the module registers an adapter that exposes zero methods. |
+| 39 | `OpenPeripheralIntegration` `@Mod(name = MOD_ID)` | The display name is the internal id (`OpenPeripheralIntegration`); `mcmod.info` has the human-readable one. Consider a proper name. |
+| 40 | `AdapterFrequencyOwner` | `@MultipleReturn` on `int[] getColors` / `String[] getColorNames`: verify OpenPeripheral turns the array into three return values (it may emit one table). If it emits a table, the `returnTypes = {NUMBER, NUMBER, NUMBER}` docs are wrong. |
+
+---
+
+## 5. Optimizations
+
+1. **Cache adapter-derived objects**
+   - `AdapterWorldInventory`: static `IWorldPosProvider` wrapper instead of an anonymous class per call.
+   - `AdapterBeeHousing`: cache `ISpeciesRoot#getMutations(false)` and the computed species set per
+     species root, invalidating on world load; currently `listAllSpecies`/`getBeeParents`/`getBeeChildren`
+     rebuild the whole mutation/genome list on every call.
+2. **Avoid duplicate work**
+   - `BurnTimeMetaProvider` (see §4.8).
+   - `AdapterTileSteamTurbine` calls `getMaxDamage()` once per item; cache in a local.
+   - `AdapterBeeHousing.getOffspringSpecies` calls `templateAsGenome` for every mutation; compute once
+     per mutation and reuse across the three public methods.
+3. **Lazy/limited results**
+   - `AdapterNetwork.getAvailableItems` materialises every AE stack into a Lua table. Add an optional
+     limit/offset (or a `getAvailableItemCount`) so a 10k-type network does not blow up the computer’s
+     Lua memory.
+   - `StorageCellMetaProvider` performs a full AE2 cell inventory scan on every item metadata lookup;
+     cache by `ItemStack` (NBT hash) or make it opt-in.
+4. **Async annotations**
+   - `ModuleIC2Api` adapters (`AdapterEnergyConductor/Sink/Source/Storage`) are annotated
+     `@Asynchronous` at class level although they are pure getters. Every Lua call allocates a main-thread
+     task and resumes on the next tick. Remove class-level `@Asynchronous` and keep it only where a call
+     can block (none of these do).
+   - `AdapterNoteBlock.getNote` is `@Asynchronous` although it reads a byte.
+   - `AdapterInventory` is class-level `@Asynchronous`; only mutations need it. `getStackInSlot`/`getAllStacks`
+     could be synchronous (`@Asynchronous(false)`), the way `destroyStack` already is.
+5. **Collections**
+   - `AdapterInventory.getAllStacks` → `LinkedHashMap` or `TreeMap<Index, Object>`.
+   - `EntityLivingMetaProvider` uses two maps for potion data; keep one.
+   - `ItemFingerprint` NBT hashing is repeated for the same tag in AE2 loops; cache the hash on the
+     `NBTTagCompound` identity if profiling shows it.
+6. **Reflection**
+   - `FieldAccess<Integer>`/`FieldAccess<Double>` box on every read (`AdapterArcaneBore`,
+     `AdapterElecticMachine`). OpenModsLib likely has primitive accessors; if not, cache the `Field` and
+     read primitives.
+   - Build the `FieldAccess`/`MethodAccess` handles in `static final` fields, not per adapter instance,
+     where the target class is version-stable (most MFR/Railcraft/Thaumcraft adapters).
+7. **Startup**
+   - `ModuleVanilla.load()` performs ~40 `register` calls on the OpenPeripheral registry; each one
+     triggers reflection/annotation scanning. It only runs once, but a table-driven list would make
+     ordering and duplicate keys reviewable at a glance.
+
+---
+
+## 6. Refactors / code quality
+
+1. **De-duplicate the `preInit` if-chain** (`OpenPeripheralIntegration.java:92-150`). It is 25 repeated
+   `if (checkConfig(...)) Integration.addModule(...)` lines and already contains a duplicate key (3.1).
+   Replace with an ordered `List<ModuleEntry>` (`key`, `Supplier<IIntegrationModule>`) and assert unique
+   keys at startup. A unit test could then verify the key set without FML.
+2. **Reflection target constants**: the string literals
+   (`"ic2.core.block.machine.tileentity.TileEntityElectricMachine"`,
+   `"powercrystals.minefactoryreloaded.tile.machine.*"`, `"thaumcraft.common.tiles.*"`, …) are spread over
+   20+ classes. Put them in one `ReflectionTargets` class so a rename is a single edit and typos are
+   reviewable.
+3. **Adapter base classes**: `AdapterEnergyProvider`/`AdapterEnergyReceiver`, the three
+   `AdapterEnder*Attuned` classes, and the four `AdapterHas*/Needs*` Railcraft adapters are near-identical.
+   Extract small bases (`AbstractEnergyAdapter`, `AbstractEnderAttunedAdapter`,
+   `BooleanReflectionAdapter`) to cut ~400 lines and remove copy/paste bugs.
+4. **MFR/Railcraft reflection adapters** are ~15 classes of the same getter/setter pattern. A tiny
+   `PropertyReflection` helper (`get`/`set` method name + type) would make them data-driven.
+5. **Fingerprint type**: promote `ItemFingerprint` to a value object (`equals`/`hashCode`, validated id,
+   `fromString` parser), and use it in AE2/Railcraft comparisons instead of ad-hoc `UniqueIdentifier`
+   construction.
+6. **Consistent validation**: decide once whether adapters throw `IllegalArgumentException` /
+   `IllegalStateException` / `LuaException` for bad input and apply it. Today `AdapterInventory` uses
+   `Index#checkElementIndex` (IOOBE), Mystcraft uses `IllegalStateException`, AE2 uses
+   `Preconditions.checkArgument`, and several adapters NPE.
+7. **Naming typos** (class renames are safe; config keys/Lua names are not):
+   `AdapterElecticMachine` → `AdapterElectricMachine`, `AugumenedItemMetaProvider` →
+   `AugmentedItemMetaProvider` (key `augumented` must stay), `RefuealableCartMetaProvider` →
+   `RefuelableCartMetaProvider`, `alleleCompatator` → `alleleComparator`, `conventers` → `converters`,
+   `parentYpe` → `parentType` (Lua arg name — breaking, document), `tilenentity` (config key, keep).
+8. **`AdapterBeacon`**: make `getEffectName` take `Potion`/`int` and avoid constructing `PotionEffect`.
+9. **`ItemFingerprint` Javadoc** still says “SearchNeedle”; align the docs with the class name and its
+   Lua table shape (`{id, dmg?, nbt_hash?}`).
+10. **`README.md`** is two lines. OpenPeripheral’s README documents the test commands, the coverage gate,
+    the game-test workflow and the dependency pins; mirroring that would make the new CI/verification
+    discoverable.
+11. **`mcmod.info`**: the author list uses a tab before `"boq"`; harmless but Spotless/code review noise.
+12. **`modId` casing**: `modId = OpenPeripheralIntegration` (mixed case). Forge tolerates it, but mod ids
+    are conventionally lowercase; changing it now is a breaking change, so at least note it.
+
+---
+
+## 7. Dead / unused code
+
+| Item | Notes |
+|---|---|
+| `railcraft/VanillaMinecraftMetaProvider` | Never registered (`ModuleRailcraftCarts` registers the other cart providers). Either register it or delete it. Its key `railcraft_cart` would collide conceptually with the other cart metadata keys, so deleting is probably right. |
+| `cofh/inventory/AdapterInventoryHandler` methods | Unreachable from Lua (no `@ScriptCallable`, package-private) — see 3.2. |
+| `DUMMY_VANILLA_MODID` (×3) | Unused public mutable statics. |
+| `NotebookIInventoryWrapper.getStackInSlotOnClosing` | Always throws; part of `IInventory` but never useful. |
+| `Mystcraft v1` package | Only loaded for Mystcraft `< 0.11.1.00`; kept for compatibility, but the code is effectively maintenance-only. Consider documenting that in the package-info. |
+
+---
+
+## 8. Test-coverage gaps & recommended next tests
+
+Current coverage is deliberately concentrated on the vanilla layer, because all other integrations are
+`compileOnly` and therefore absent from the test runtime classpath.
+
+Highest-value additions:
+
+1. **Regression test for the duplicate module key** (would have caught 3.1). Extract the
+   `key → module` table from `preInit` and unit-test that keys are unique and cover every module class.
+2. **`/op_dump`-style config test**: construct `OpenPeripheralIntegration` config in a temp dir and assert
+   every module key exists (no FML bus needed if the key list is separated from registration).
+3. **Reflection-target tests**: add a test-only `Class#forName` smoke test for each hard-coded target
+   string, asserting the class exists when the corresponding dependency is on the test classpath. Adding
+   `testImplementation` for IC2/MFR/Railcraft/Thaumcraft (as OpenPeripheral does for OpenComputers) would
+   let these run in CI and catch silent integration rot.
+4. **Pure-helper extraction tests**: `AdapterGridBase.compareToAEStack`, `ConverterIIndividual.describeIndividual`,
+   `ConverterAspectList.aspectsToMap`, `SecurityUtils.canModify`, `TicketMetaProvider.canApply` — these are
+   static/stateless and testable without the full mod if the helpers are moved out of the adapter classes
+   (or if the compile-only mods are added to the test classpath).
+5. **Additional in-game coverage**: a second test mod adapter for `AdapterWorldInventory` that places two
+   chests, calls `pullItem`/`pushItem` through a real peripheral, and verifies item counts — that path is
+   currently only covered by mocked headless tests.
+6. **Config GUI**: a client-side game test (Xvfb) that opens the config screen and toggles a module would
+   catch `ConfigGuiFactory` regressions; the current game test is server-only.
+7. **Error paths**: `ItemFingerprint` with a malformed id, `AdapterSign.setText` with 5 lines,
+   `AdapterInventory` with a null inventory, AE2 `AdapterGridBase` with a null grid — each currently either
+   NPEs or throws an internal exception; tests would pin the intended error type once fixed.
+
+---
+
+## 9. Threading / lifecycle notes
+
+- `CraftingCallback.calculationComplete` is invoked by AE2 on its own calculation thread and calls
+  `access.signal(...)` (OpenPeripheral’s `IArchitectureAccess`). Verify that `signal` is thread-safe for
+  the ComputerCraft architecture; if not, marshal the signal onto the server thread. The same applies to
+  `CraftingRequester.jobStateChange`.
+- The game test correctly runs the computer-driving loop off the server thread; keep that pattern if more
+  in-game tests are added (CC’s `issueMainThreadTask` waits for the server thread, so driving a computer
+  from the server thread deadlocks).
+- `Integration.addModule` logs a warning and silently does nothing if modules are added after loading;
+  `preInit` is correct today, but a late `OpenPeripheralIntegration.instance` access elsewhere would not
+  be caught.
+
+---
+
+## 10. Suggested priority order
+
+1. Fix 3.1 (duplicate Thaumcraft module) and 3.2 (CoFH inventory adapter) — both are one-file fixes with
+   immediate player-visible impact.
+2. Fix 3.3/3.4 (AE2 crafting) and 3.5 (enchantment bounds) — data corruption/over-reporting and a crash.
+3. Fix 3.6/3.7 (sign + note block) — small, well-contained.
+4. Apply the null-safety sweep from §4 (inventory, AE2 grid, potion, turbine, fingerprint).
+5. Do the refactors in §6.1–6.4 (config table, reflection constants, adapter bases); they reduce the
+   surface for the next round of bugs.
+6. Add the tests from §8.1–8.4 and grow the coverage floor as the reflection layer becomes testable.
+
+---
+
+## Appendix — commands run for this review
+
+```text
+./gradlew updateDependencies        # then manually corrected (AE2 1099, OpenModsLib 0.10.15)
+./gradlew spotlessApply
+./gradlew test                      # 75 tests, green
+./gradlew jacocoTestReport          # 21.3 % line, 18.6 % branch
+./gradlew check                     # green
+./gradlew gameTestServer            # green (adapter + real Lua markers)
+```
+
+Note: `updateDependencies` reported `Applied-Energistics-2-Unofficial: rv3-beta-1097-GTNH -> rv3-beta-999-GTNH`
+and `OpenModsLib: 0.10.15 -> 0.11.0`; both were reverted by hand. Future runs need the same review until
+the task’s version comparison is fixed upstream.
