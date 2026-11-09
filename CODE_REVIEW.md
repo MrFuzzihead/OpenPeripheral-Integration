@@ -10,7 +10,7 @@ Test/build facts at the time of writing:
 |------|-------|
 | `./gradlew test` | **92 tests / 9 classes, all green** |
 | JaCoCo | **24.3 % line** (593/2440), **22.8 % branch** (149/654) |
-| Coverage floor enforced by `check` | 18 % line / 10 % branch |
+| Coverage floor enforced by `check` | 22 % line / 18 % branch |
 | `./gradlew check` | green (compile, tests, JaCoCo verification, Spotless, Checkstyle) |
 | `./gradlew gameTestServer` | green — `GAMETEST_INT_ADAPTERS_OK`, `GAMETEST_INT_LUA_OK`, `OPENPERIPHERAL_INTEGRATION_GAMETEST_OK` |
 | Unit-test JVM | Java 8 toolchain (same bytecode target the mod ships) |
