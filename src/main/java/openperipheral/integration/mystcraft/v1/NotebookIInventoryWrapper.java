@@ -11,11 +11,11 @@ import openmods.reflection.MethodAccess.Function1;
 import openmods.reflection.MethodAccess.Function2;
 import openmods.reflection.MethodAccess.Function3;
 import openmods.reflection.ReflectionHelper;
+import openperipheral.integration.ReflectionTargets;
 
 public class NotebookIInventoryWrapper implements IInventory {
 
-    private final Class<?> INVENTORY_CLASS = ReflectionHelper
-        .getClass("com.xcompwiz.mystcraft.inventory.InventoryNotebook");
+    private final Class<?> INVENTORY_CLASS = ReflectionHelper.getClass(ReflectionTargets.Mystcraft.INVENTORY_NOTEBOOK);
 
     private final Function1<Boolean, ItemStack> IS_ITEM_VALID = MethodAccess
         .create(boolean.class, INVENTORY_CLASS, ItemStack.class, "isItemValid");

@@ -11,6 +11,7 @@ import openperipheral.api.adapter.Asynchronous;
 import openperipheral.api.adapter.IPeripheralAdapter;
 import openperipheral.api.adapter.method.ReturnType;
 import openperipheral.api.adapter.method.ScriptCallable;
+import openperipheral.integration.ReflectionTargets;
 import thaumcraft.api.aspects.Aspect;
 
 /**
@@ -20,7 +21,7 @@ import thaumcraft.api.aspects.Aspect;
 @Asynchronous
 public class AdapterDeconstructor implements IPeripheralAdapter {
 
-    private final Class<?> CLASS = ReflectionHelper.getClass("thaumcraft.common.tiles.TileDeconstructionTable");
+    private final Class<?> CLASS = ReflectionHelper.getClass(ReflectionTargets.Thaumcraft.TILE_DECONSTRUCTION_TABLE);
 
     private final FieldAccess<Aspect> ASPECT = FieldAccess.create(CLASS, "aspect");
 

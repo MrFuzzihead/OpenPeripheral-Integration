@@ -13,10 +13,11 @@ import com.google.common.collect.Maps;
 
 import openmods.reflection.ReflectionHelper;
 import openperipheral.api.meta.IItemStackMetaProvider;
+import openperipheral.integration.ReflectionTargets;
 
 public class SafariNetMetaProvider implements IItemStackMetaProvider<Item> {
 
-    private final Class<?> cls = ReflectionHelper.getClass("powercrystals.minefactoryreloaded.item.ItemSafariNet");
+    private final Class<?> cls = ReflectionHelper.getClass(ReflectionTargets.MinefactoryReloaded.ITEM_SAFARI_NET);
 
     private final Map<String, String> safariNets = ImmutableMap.of(
         "item.mfr.safarinet.reusable",

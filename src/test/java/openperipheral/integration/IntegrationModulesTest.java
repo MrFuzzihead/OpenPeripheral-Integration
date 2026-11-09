@@ -49,7 +49,7 @@ public class IntegrationModulesTest {
                 "cofh-api-tileentity",
                 "cofh-api-transport",
                 "buildcraft-api-transport",
-                "buildcraft-api-tilenentity",
+                "buildcraft-api-tileentity",
                 "buildcraft-api-facades",
                 "ic2-mod",
                 "ic2-api",

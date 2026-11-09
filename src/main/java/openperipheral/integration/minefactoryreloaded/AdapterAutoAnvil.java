@@ -8,11 +8,11 @@ import openperipheral.api.adapter.IPeripheralAdapter;
 import openperipheral.api.adapter.method.Arg;
 import openperipheral.api.adapter.method.ReturnType;
 import openperipheral.api.adapter.method.ScriptCallable;
+import openperipheral.integration.ReflectionTargets;
 
 public class AdapterAutoAnvil implements IPeripheralAdapter {
 
-    private final Class<?> CLASS = ReflectionHelper
-        .getClass("powercrystals.minefactoryreloaded.tile.machine.TileEntityAutoAnvil");
+    private final Class<?> CLASS = ReflectionHelper.getClass(ReflectionTargets.MinefactoryReloaded.TILE_AUTO_ANVIL);
 
     private final Function0<Boolean> GET_REPAIR_ONLY = MethodAccess.create(boolean.class, CLASS, "getRepairOnly");
     private final Function1<Void, Boolean> SET_REPAIR_ONLY = MethodAccess

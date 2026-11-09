@@ -10,11 +10,11 @@ import openmods.reflection.ReflectionHelper;
 import openperipheral.api.adapter.IPeripheralAdapter;
 import openperipheral.api.adapter.method.ReturnType;
 import openperipheral.api.adapter.method.ScriptCallable;
+import openperipheral.integration.ReflectionTargets;
 
 public class AdapterTileSteamTurbine implements IPeripheralAdapter {
 
-    private final Class<?> CLASS = ReflectionHelper
-        .getClass("mods.railcraft.common.blocks.machine.alpha.TileSteamTurbine");
+    private final Class<?> CLASS = ReflectionHelper.getClass(ReflectionTargets.Railcraft.TILE_STEAM_TURBINE);
 
     private final Function0<IInventory> GET_INVENTORY = MethodAccess.create(IInventory.class, CLASS, "getInventory");
     private final Function0<Float> GET_OUTPUT = MethodAccess.create(float.class, CLASS, "getOutput");

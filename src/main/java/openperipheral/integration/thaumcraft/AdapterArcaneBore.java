@@ -16,6 +16,7 @@ import openperipheral.api.adapter.Asynchronous;
 import openperipheral.api.adapter.IPeripheralAdapter;
 import openperipheral.api.adapter.method.ReturnType;
 import openperipheral.api.adapter.method.ScriptCallable;
+import openperipheral.integration.ReflectionTargets;
 
 /**
  * @author Katrina
@@ -24,9 +25,9 @@ import openperipheral.api.adapter.method.ScriptCallable;
 @Asynchronous
 public class AdapterArcaneBore implements IPeripheralAdapter {
 
-    private final Class<?> CLASS = ReflectionHelper.getClass("thaumcraft.common.tiles.TileArcaneBore");
+    private final Class<?> CLASS = ReflectionHelper.getClass(ReflectionTargets.Thaumcraft.TILE_ARCANE_BORE);
     private final Class<?> ITEM_ELEMENTAL_PICK = ReflectionHelper
-        .getClass("thaumcraft.common.items.equipment.ItemElementalPickaxe");
+        .getClass(ReflectionTargets.Thaumcraft.ITEM_ELEMENTAL_PICKAXE);
 
     private final FieldAccess<Boolean> HAS_PICKAXE = FieldAccess.create(CLASS, "hasPickaxe");
     private final FieldAccess<Boolean> HAS_FOCUS = FieldAccess.create(CLASS, "hasFocus");

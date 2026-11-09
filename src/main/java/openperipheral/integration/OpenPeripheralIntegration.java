@@ -52,6 +52,8 @@ public class OpenPeripheralIntegration {
             config.removeCategory(integration);
         }
 
+        ConfigMigrations.migrate(config);
+
         for (IntegrationModules.Entry entry : IntegrationModules.entries()) {
             if (!checkConfig(config, entry.key)) continue;
 

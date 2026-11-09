@@ -101,8 +101,8 @@ public final class IntegrationModules {
         builder.add(entry("cofh-api-transport", ModuleCofhTransport::new));
 
         builder.add(entry("buildcraft-api-transport", ModuleBuildCraftTransport::new));
-        // Historical typo in the persisted config key; keep it so existing configs do not silently reset.
-        builder.add(entry("buildcraft-api-tilenentity", ModuleBuildCraftTile::new));
+        // Renamed from the historical "buildcraft-api-tilenentity" typo; ConfigMigrations copies the value.
+        builder.add(entry("buildcraft-api-tileentity", ModuleBuildCraftTile::new));
         builder.add(entry("buildcraft-api-facades", ModuleBuildCraftFacades::new));
 
         builder.add(entry("ic2-mod", ModuleIC2::new));

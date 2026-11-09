@@ -9,13 +9,14 @@ import openperipheral.api.adapter.Asynchronous;
 import openperipheral.api.adapter.IPeripheralAdapter;
 import openperipheral.api.adapter.method.ReturnType;
 import openperipheral.api.adapter.method.ScriptCallable;
+import openperipheral.integration.ReflectionTargets;
 import thaumcraft.api.aspects.Aspect;
 import thaumcraft.api.aspects.IAspectContainer;
 
 @Asynchronous
 public class AdapterJar implements IPeripheralAdapter {
 
-    private final Class<?> CLASS = ReflectionHelper.getClass("thaumcraft.common.tiles.TileJarFillable");
+    private final Class<?> CLASS = ReflectionHelper.getClass(ReflectionTargets.Thaumcraft.TILE_JAR_FILLABLE);
 
     private final FieldAccess<Aspect> ASPECT_FILTER = FieldAccess.create(CLASS, "aspectFilter");
 

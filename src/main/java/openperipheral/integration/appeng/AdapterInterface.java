@@ -29,11 +29,12 @@ import openperipheral.api.adapter.method.ScriptCallable;
 import openperipheral.api.architecture.IArchitectureAccess;
 import openperipheral.api.converter.IConverter;
 import openperipheral.api.helpers.Index;
+import openperipheral.integration.ReflectionTargets;
 import openperipheral.integration.vanilla.ItemFingerprint;
 
 public class AdapterInterface extends AdapterGridBase {
 
-    private final Class<?> CLASS = ReflectionHelper.getClass("appeng.tile.misc.TileInterface");
+    private final Class<?> CLASS = ReflectionHelper.getClass(ReflectionTargets.AppEng.TILE_INTERFACE);
 
     @Override
     public Class<?> getTargetClass() {

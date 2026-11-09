@@ -8,9 +8,9 @@ Test/build facts at the time of writing:
 
 | Item | Value |
 |------|-------|
-| `./gradlew test` | **95 tests / 9 classes, all green** |
-| JaCoCo | **25.2 % line** (619/2456), **23.7 % branch** (158/666) |
-| Coverage floor enforced by `check` | 24 % line / 21 % branch |
+| `./gradlew test` | **100 tests / 11 classes, all green** |
+| JaCoCo | **25.7 % line** (632/2457), **24.4 % branch** (164/672) |
+| Coverage floor enforced by `check` | 24 % line / 23 % branch |
 | `./gradlew check` | green (compile, tests, JaCoCo verification, Spotless, Checkstyle) |
 | `./gradlew gameTestServer` | green — `GAMETEST_INT_ADAPTERS_OK`, `GAMETEST_INT_LUA_OK`, `OPENPERIPHERAL_INTEGRATION_GAMETEST_OK` |
 | Unit-test JVM | Java 8 toolchain (same bytecode target the mod ships) |
@@ -58,7 +58,7 @@ New/changed files:
 |---|---|
 | `dependencies.gradle` | `testImplementation` JUnit 4.13.2, Mockito 4.11.0 + `mockito-inline` |
 | `addon.gradle.kts` | JaCoCo, Java 8 test toolchain, `gameTest` source set, `gameTestServer`, coverage floor |
-| `src/test/java/openperipheral/integration/**` | 95 headless tests across 9 classes |
+| `src/test/java/openperipheral/integration/**` | 100 headless tests across 11 classes |
 | `src/gameTest/java/openperipheral/integration/gametest/IntegrationGameTestMod.java` | non-shipped test mod: real provider, fake CC access/context, real ComputerCraft computer |
 | `src/gameTest/resources/openperipheralintegration/lua/peripheral_tests.lua` | Lua suite shared by the headless test and the in-game test |
 | `.github/workflows/game-test.yml` | CI job that boots a dedicated server and greps the markers |
@@ -66,7 +66,7 @@ New/changed files:
 Commands:
 
 ```sh
-./gradlew test                        # 95 JUnit tests (Java 8)
+./gradlew test                        # 100 JUnit tests (Java 8)
 ./gradlew jacocoTestReport            # build/reports/jacoco/test/html
 ./gradlew jacocoTestCoverageVerification
 ./gradlew check                       # tests + coverage floor + Spotless + Checkstyle
@@ -165,6 +165,21 @@ Coverage gaps are listed in §8.
 - **StorageCellMetaProvider** was intentionally *not* cached: cell contents (free bytes, stored types)
   change live, so a cache would serve stale metadata.
 - Tests: **95**, coverage **25.2 % line / 23.7 % branch**; floor raised to 24 % / 21 %.
+
+---
+
+## 0e. Batch 5 — reflection table and config migration
+
+- All 30 reflective class names now live in `ReflectionTargets` (nested per mod) instead of string
+  literals in 30 files; `ReflectionTargetsTest` asserts they are unique and plausible FQCNs.
+- The `buildcraft-api-tilenentity` config key was renamed to `buildcraft-api-tileentity` with a
+  `ConfigMigrations` copy step, so existing configs keep their value. `ConfigMigrationsTest` covers
+  migration, existing-value precedence and no-op paths.
+- **Declined with rationale:** extracting the CoFH energy adapters (the two interfaces have no shared
+  storage supertype, so a base would save almost nothing) and the Ender-attuned adapters (a common
+  `IEnderAttuned` base would move `@ScriptCallable` methods into inherited generics, which cannot be
+  verified here because CoFH is absent from the test runtime). Both are documented rather than risked.
+- Tests: **100**, coverage **25.7 % line / 24.4 % branch**; floor raised to 24 % / 23 %.
 
 ---
 
@@ -304,7 +319,7 @@ the client (the hook exists precisely to allow this). Also:
 | 33 ✅ | `MystcraftAccess` | Log messages say “Mystraft” and “unavalable”; the catch-all `Exception` hides API bugs. |
 | 34 | `AdapterBeeHousing` | `parentYpe` argument name and the repeated `getMutations(false)` calls are fixed ✅ (batch 4); `alleleCompatator` is still misspelled, and `getBeeBreedingData` still aborts the whole list with a `RuntimeException` if one mutation is malformed (skip + log instead). |
 | 35 | `ConverterIIndividual` | `conventers` is misspelled; `convertAllele` returns the literal `"missing"` for a null allele, which is indistinguishable from a legitimate species name; `describeIndividual` calls `hasEffect()` on every `IIndividual` (verify that all Forestry implementations support it). |
-| 36 | `OpenPeripheralIntegration` config key `buildcraft-api-tilenentity` | Typo in a persisted config key. Renaming would orphan existing configs; keep reading the old key and optionally migrate to `buildcraft-api-tileentity` (log migration). |
+| 36 | `OpenPeripheralIntegration` config key `buildcraft-api-tilenentity` ✅ | Renamed to `buildcraft-api-tileentity`; `ConfigMigrations` copies the old value and removes the legacy key (batch 5). |
 | 37 | `ApiIntegrationModule.name()` / `ModIntegrationModule.name()` | Both produce “… (API) CC integration module” / “(mod) CC integration module” even for AE2/IC2/Railcraft — “CC” is wrong for non-ComputerCraft integrations and makes logs confusing. |
 | 38 | `AdapterInventoryHandler` (3.2) | All four methods are package-private and carry no `@ScriptCallable`; the module registers an adapter that exposes zero methods. |
 | 39 | `OpenPeripheralIntegration` `@Mod(name = MOD_ID)` | The display name is the internal id (`OpenPeripheralIntegration`); `mcmod.info` has the human-readable one. Consider a proper name. |
@@ -360,14 +375,13 @@ the client (the hook exists precisely to allow this). Also:
 
 1. **De-duplicate the `preInit` if-chain** ✅ (`IntegrationModules`). The 25-entry table is ordered, has a
    startup duplicate-key check, and `IntegrationModulesTest` pins the config-key set.
-2. **Reflection target constants**: the string literals
-   (`"ic2.core.block.machine.tileentity.TileEntityElectricMachine"`,
-   `"powercrystals.minefactoryreloaded.tile.machine.*"`, `"thaumcraft.common.tiles.*"`, …) are spread over
-   20+ classes. Put them in one `ReflectionTargets` class so a rename is a single edit and typos are
-   reviewable.
-3. **Adapter base classes**: the four Railcraft `AdapterHas*/Needs*` adapters now share
-   `BooleanReflectionAdapter` ✅ (batch 4). `AdapterEnergyProvider`/`AdapterEnergyReceiver` and the three
-   `AdapterEnder*Attuned` classes are still near-identical and remain a candidate for extraction.
+2. **Reflection target constants** ✅ (batch 5): all class names moved to `ReflectionTargets`, with a
+   uniqueness/FQCN test.
+3. **Adapter base classes**: the four Railcraft `AdapterHas*/Needs*` adapters share
+   `BooleanReflectionAdapter` ✅ (batch 4). The CoFH energy and Ender-attuned adapters were reviewed in
+   batch 5 and deliberately left alone: the energy interfaces have no shared storage supertype, and the
+   Ender base would move `@ScriptCallable` methods into inherited generics that cannot be validated
+   without CoFH on the test classpath.
 4. **MFR/Railcraft reflection adapters** are ~15 classes of the same getter/setter pattern. A tiny
    `PropertyReflection` helper (`get`/`set` method name + type) would make them data-driven.
 5. **Fingerprint type** ✅ (batch 3): `ItemFingerprint` now has validated ids and `equals`/`hashCode`.
@@ -381,7 +395,7 @@ the client (the hook exists precisely to allow this). Also:
    `AdapterElecticMachine` → `AdapterElectricMachine`, `AugumenedItemMetaProvider` →
    `AugmentedItemMetaProvider` (key `augumented` must stay), `RefuealableCartMetaProvider` →
    `RefuelableCartMetaProvider`, `alleleCompatator` → `alleleComparator`, `conventers` → `converters`,
-   `parentYpe` → `parentType` (Lua arg name — breaking, document), `tilenentity` (config key, keep).
+   `parentYpe` → `parentType` ✅ (batch 4), `tilenentity` → migrated (batch 5).
 8. **`AdapterBeacon`**: make `getEffectName` take `Potion`/`int` and avoid constructing `PotionEffect`.
 9. **`ItemFingerprint` Javadoc** still says “SearchNeedle”; align the docs with the class name and its
    Lua table shape (`{id, dmg?, nbt_hash?}`).
@@ -467,7 +481,7 @@ Highest-value additions:
 ```text
 ./gradlew updateDependencies        # then manually corrected (AE2 1099, OpenModsLib 0.10.15)
 ./gradlew spotlessApply
-./gradlew test                      # 95 tests, green
+./gradlew test                      # 100 tests, green
 ./gradlew jacocoTestReport          # 21.3 % line, 18.6 % branch
 ./gradlew check                     # green
 ./gradlew gameTestServer            # green (adapter + real Lua markers)

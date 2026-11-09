@@ -6,11 +6,11 @@ import openmods.reflection.ReflectionHelper;
 import openperipheral.api.adapter.IPeripheralAdapter;
 import openperipheral.api.adapter.method.ReturnType;
 import openperipheral.api.adapter.method.ScriptCallable;
+import openperipheral.integration.ReflectionTargets;
 
 public class AdapterTileBoilerFirebox implements IPeripheralAdapter {
 
-    private final Class<?> CLASS = ReflectionHelper
-        .getClass("mods.railcraft.common.blocks.machine.beta.TileBoilerFirebox");
+    private final Class<?> CLASS = ReflectionHelper.getClass(ReflectionTargets.Railcraft.TILE_BOILER_FIREBOX);
 
     private final Function0<Boolean> IS_BURNING = MethodAccess.create(boolean.class, CLASS, "isBurning");
 

@@ -28,10 +28,11 @@ import openperipheral.api.adapter.method.Optionals;
 import openperipheral.api.adapter.method.ReturnType;
 import openperipheral.api.adapter.method.ScriptCallable;
 import openperipheral.api.helpers.Index;
+import openperipheral.integration.ReflectionTargets;
 
 public class AdapterWritingDesk implements IPeripheralAdapter {
 
-    private final Class<?> CLASS = ReflectionHelper.getClass("com.xcompwiz.mystcraft.tileentity.TileEntityDesk");
+    private final Class<?> CLASS = ReflectionHelper.getClass(ReflectionTargets.Mystcraft.TILE_DESK);
 
     private final Function0<Integer> GET_MAX_NOTEBOOK_COUNT = MethodAccess
         .create(int.class, CLASS, "getMaxNotebookCount");

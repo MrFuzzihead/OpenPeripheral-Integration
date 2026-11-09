@@ -5,11 +5,11 @@ import openmods.reflection.ReflectionHelper;
 import openperipheral.api.adapter.IPeripheralAdapter;
 import openperipheral.api.adapter.method.ReturnType;
 import openperipheral.api.adapter.method.ScriptCallable;
+import openperipheral.integration.ReflectionTargets;
 
 public class AdapterElecticMachine implements IPeripheralAdapter {
 
-    private final Class<?> CLASS = ReflectionHelper
-        .getClass("ic2.core.block.machine.tileentity.TileEntityElectricMachine");
+    private final Class<?> CLASS = ReflectionHelper.getClass(ReflectionTargets.IC2.TILE_ELECTRIC_MACHINE);
 
     private final FieldAccess<Integer> MAX_ENERGY = FieldAccess.create(CLASS, "maxEnergy");
     private final FieldAccess<Double> ENERGY = FieldAccess.create(CLASS, "energy");
