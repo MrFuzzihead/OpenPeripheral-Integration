@@ -68,9 +68,22 @@ jobs:
       - name: Install Xvfb and Mesa
         run: |
           sudo apt-get update
-          sudo apt-get install -y xvfb libgl1-mesa-dri libgl1 libglx-mesa0
+          # X11 client libraries GLFW (via lwjgl3ify) dlopens on Linux; Mesa provides llvmpipe.
+          sudo apt-get install -y xvfb libgl1-mesa-dri libgl1 libglx-mesa0 libegl1 \
+            libx11-6 libxext6 libxxf86vm1 libxrandr2 libxinerama1 libxcursor1 libxi6 libxkbcommon0
+
+      - name: Prepare XDG data dir for lwjgl3ify
+        run: |
+          # lwjgl3ify on Linux throws on first launch ("Could not find $XDG_DATA_HOME or
+          # $HOME/.local/share") when creating its .desktop entry, killing the client before
+          # it starts while Gradle still reports BUILD SUCCESSFUL. Create the dirs it needs.
+          mkdir -p "$HOME/.local/share/applications" "${{ github.workspace }}/.xdg-data/applications"
 
       - name: Run client game test (opens the real config GUI)
+        env:
+          XDG_DATA_HOME: ${{ github.workspace }}/.xdg-data
+          # Force Mesa software rendering (llvmpipe) under Xvfb; runners have no GPU.
+          LIBGL_ALWAYS_SOFTWARE: "1"
         run: |
           set -o pipefail
           timeout 900 xvfb-run -a -s "-screen 0 1280x720x24" ./gradlew gameTestClient --console=plain --no-configuration-cache 2>&1 | tee client-game-test.log
@@ -78,7 +91,11 @@ jobs:
       - name: Check client game-test marker
         if: always()
         run: |
-          grep -q "OPENPERIPHERAL_INTEGRATION_CLIENT_GAMETEST_OK" client-game-test.log
+          if ! grep -q "OPENPERIPHERAL_INTEGRATION_CLIENT_GAMETEST_OK" client-game-test.log; then
+            echo "Client game-test marker missing; last 200 lines of client-game-test.log:"
+            tail -n 200 client-game-test.log || true
+            exit 1
+          fi
 
       - uses: actions/upload-artifact@v4
         if: always()
