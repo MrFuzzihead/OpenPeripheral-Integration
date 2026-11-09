@@ -73,6 +73,7 @@ public class AdapterArcaneBore implements IPeripheralAdapter {
         Boolean hasPower = GETTING_POWER.call(target);
         return hasPower && hasFocus(target)
             && hasPickaxe(target)
+            && pick != null
             && pick.isItemStackDamageable()
             && !isPickaxeBroken(target);
     }

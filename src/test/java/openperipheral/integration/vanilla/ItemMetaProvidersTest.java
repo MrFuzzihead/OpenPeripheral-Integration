@@ -277,6 +277,20 @@ public class ItemMetaProvidersTest {
     }
 
     @Test
+    public void itemFingerprintRejectsNonStringNbtHash() {
+        final java.util.Map<String, Object> table = new java.util.HashMap<String, Object>();
+        table.put("id", "minecraft:stone");
+        table.put("nbt_hash", 5);
+
+        try {
+            new ConverterItemFingerprint().toJava(null, table, ItemFingerprint.class);
+            Assert.fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException expected) {
+            // expected
+        }
+    }
+
+    @Test
     public void itemFingerprintToStringAndEqualitySemantics() {
         final ItemFingerprint fingerprint = new ItemFingerprint("minecraft:stone", 3, "abc");
         Assert.assertTrue(

@@ -8,8 +8,8 @@ Test/build facts at the time of writing:
 
 | Item | Value |
 |------|-------|
-| `./gradlew test` | **80 tests / 7 classes, all green** |
-| JaCoCo | **21.3 % line** (510/2391), **19.3 % branch** (126/652) |
+| `./gradlew test` | **89 tests / 10 classes, all green** |
+| JaCoCo | **23.8 % line** (580/2440), **21.3 % branch** (137/642) |
 | Coverage floor enforced by `check` | 18 % line / 10 % branch |
 | `./gradlew check` | green (compile, tests, JaCoCo verification, Spotless, Checkstyle) |
 | `./gradlew gameTestServer` | green — `GAMETEST_INT_ADAPTERS_OK`, `GAMETEST_INT_LUA_OK`, `OPENPERIPHERAL_INTEGRATION_GAMETEST_OK` |
@@ -58,7 +58,7 @@ New/changed files:
 |---|---|
 | `dependencies.gradle` | `testImplementation` JUnit 4.13.2, Mockito 4.11.0 + `mockito-inline` |
 | `addon.gradle.kts` | JaCoCo, Java 8 test toolchain, `gameTest` source set, `gameTestServer`, coverage floor |
-| `src/test/java/openperipheral/integration/**` | 80 headless tests across 7 classes |
+| `src/test/java/openperipheral/integration/**` | 89 headless tests across 10 classes |
 | `src/gameTest/java/openperipheral/integration/gametest/IntegrationGameTestMod.java` | non-shipped test mod: real provider, fake CC access/context, real ComputerCraft computer |
 | `src/gameTest/resources/openperipheralintegration/lua/peripheral_tests.lua` | Lua suite shared by the headless test and the in-game test |
 | `.github/workflows/game-test.yml` | CI job that boots a dedicated server and greps the markers |
@@ -66,7 +66,7 @@ New/changed files:
 Commands:
 
 ```sh
-./gradlew test                        # 80 JUnit tests (Java 8)
+./gradlew test                        # 89 JUnit tests (Java 8)
 ./gradlew jacocoTestReport            # build/reports/jacoco/test/html
 ./gradlew jacocoTestCoverageVerification
 ./gradlew check                       # tests + coverage floor + Spotless + Checkstyle
@@ -83,7 +83,7 @@ Design notes:
 - Minecraft’s global registries (`Items.*`, `Blocks.*`, `GameData`, `ForgeHooks`, `FluidRegistry`,
   `OreDictionary`, `ColorUtils`) are **not** usable without FML’s launch class loader. Tests construct
   items directly (`new ItemSword(...)`, `new ItemArmor(...)`) and avoid those statics; that limitation
-  is the main reason coverage is 21 % rather than much higher.
+  is the main reason coverage is 24 % rather than much higher.
 - The in-game Lua test uses `ServerComputer#setPeripheral(2, …)`, so it exercises **this mod’s**
   peripheral directly instead of being shadowed by ComputerCraft’s native `inventory` provider (see
   the README note about CC 3.3 generic peripherals).
@@ -104,6 +104,28 @@ Coverage gaps are listed in §8.
 - **3.6** `AdapterSign.setText` accepts exactly four lines; **§4.1** `setLines` now truncates to 15 chars.
 - **3.7** note-block pitch is wrapped with `Math.floorMod` and only written after the Forge hook approves.
 - Tests: **80** (was 75), coverage **21.3 % line / 19.3 % branch**.
+
+---
+
+## 0b. Batch 2 — robustness & structure
+
+- **§6.1** module registration now lives in one table (`IntegrationModules`), with a startup duplicate-key
+  check and a regression test that pins all 27 config keys.
+- **3.4** fully fixed: `injectCraftedItems` now injects into the AE network via the storage grid monitor
+  and returns the true remainder.
+- **§4.2** inventory adapters consistently use a validated `requireInventory` helper.
+- **§4.3** corrected the duplicate `toDirection` argument name.
+- **§4.5** `getAllStacks` now returns a `LinkedHashMap`.
+- **§4.6** neighbour lookups fail with a descriptive error when the world is missing (anonymous-class
+  allocation still open).
+- **§4.11** `ItemFingerprint` validates ids and registry lookups; **§4.12** rejects non-string `nbt_hash`.
+- **§4.13** AE2 grid access fails with `IllegalStateException` instead of NPE when unformed/unpowered.
+- **§4.14** CPU lookup is null-name safe and crafting quantities must be positive.
+- **§4.15** cell slots are validated against `getCellCount`; **§4.16** converter output is type-checked.
+- **§4.17** facade block/meta arrays are length-checked; **§4.18** arcane bore checks for a missing pick.
+- **§4.21** `SecurityUtils` fails closed on a null access mode; **§4.22** null potion entries are handled.
+- **§4.23** beacon effects no longer allocate a throw-away `PotionEffect`.
+- Tests: **89** (was 80), coverage **23.8 % line / 21.3 % branch**.
 
 ---
 
@@ -162,18 +184,16 @@ Also: `converter.fromJava(this.requestedStack)` was called on an object that is 
 the constructor (`requestedStack = converter.fromJava(requestedStack)`), so the signal payload was
 double-converted. **Fixed:** send `requestedStack` directly.
 
-### 3.4 AE2 crafting request contract is violated — P1 (partially fixed ✅)
+### 3.4 AE2 crafting request contract is violated — P1 ✅
 
 `appeng/CraftingRequester.java`:
 
 - `getRequestedJobs()` returned `null`; AE2 iterates this set when a link is cancelled/invalidated.
   **Fixed:** returns `ImmutableSet.of()`.
-- `injectCraftedItems(...)` returns `items`, i.e. “none of the crafted items were accepted”. The class
-  comment claims crafted items go straight back into the AE network, but the contract for the return
-  value is *the remainder that could not be injected*. As written, finished crafts stay in the crafting
-  CPU output instead of the network. Either inject with `monitor.injectItems(...)` and return the true
-  remainder (or `null`), or drop the claim from the comment. Confirm against the AE2 version pinned in
-  `dependencies.gradle`.
+- `injectCraftedItems(...)` returned `items`, i.e. “none of the crafted items were accepted”. The class
+  comment claimed crafted items go straight back into the AE network, but the contract for the return
+  value is *the remainder that could not be injected*. **Fixed:** the items are now injected through
+  `IStorageGrid#getItemInventory()` with the machine action source, and the true remainder is returned.
 
 ### 3.5 `ModuleVanilla.listEnchantments` throws on out-of-range enchantment ids — P1 ✅
 
@@ -211,28 +231,28 @@ the client (the hook exists precisely to allow this). Also:
 | # | Location | Issue |
 |---|---|---|
 | 1 | `AdapterSign.setLines` ✅ | ~~Does not truncate lines to 15 chars~~ (fixed: now routes through `setLine`); it did not need `ForgeHooks` because it does not change the note. |
-| 2 | `AdapterInventory.java:105,118,131`, `condenseItems` | `InventoryUtils.getInventory(target)` is dereferenced without a null check in `getStackInSlot`, `getAllStacks`, `destroyStack` and `condenseItems`, while `getInventoryName`/`getInventorySize` do check. `InventoryUtils.getInventory(IInventory)` currently returns the input for non-chests (and a large-chest wrapper for chests), so this is a defensive-consistency issue rather than a proven crash — but the split invites a future NPE. |
-| 3 | `AdapterInventory.swapStacks` | The second `@Arg` is named `fromDirection` (copy/paste); generated Lua docs are wrong for `toDirection`. |
+| 2 ✅ | `AdapterInventory.java:105,118,131`, `condenseItems` | `InventoryUtils.getInventory(target)` is dereferenced without a null check in `getStackInSlot`, `getAllStacks`, `destroyStack` and `condenseItems`, while `getInventoryName`/`getInventorySize` do check. `InventoryUtils.getInventory(IInventory)` currently returns the input for non-chests (and a large-chest wrapper for chests), so this is a defensive-consistency issue rather than a proven crash — but the split invites a future NPE. |
+| 3 ✅ | `AdapterInventory.swapStacks` | The second `@Arg` is named `fromDirection` (copy/paste); generated Lua docs are wrong for `toDirection`. |
 | 4 | `AdapterInventory.getStackInSlot` vs `getAllStacks` | Defaults are inconsistent: `getStackInSlot` returns a raw `ItemStack` unless `proxy == TRUE`, `getAllStacks` returns proxies unless `proxy == FALSE`. Document or align. |
-| 5 | `AdapterInventory.getAllStacks` | Uses `HashMap`, so slot order in the returned table is arbitrary; `LinkedHashMap` (or `Index`-sorted) is friendlier to Lua consumers. |
-| 6 | `AdapterWorldInventory.getProvider` | Allocates an anonymous `IWorldPosProvider` on every call; hoist a private static class (or a cached wrapper). `getNeighborTarget` also does not check that `getWorld()` is non-null. |
+| 5 ✅ | `AdapterInventory.getAllStacks` | Uses `HashMap`, so slot order in the returned table is arbitrary; `LinkedHashMap` (or `Index`-sorted) is friendlier to Lua consumers. |
+| 6 ✅ | `AdapterWorldInventory.getProvider` | Allocates an anonymous `IWorldPosProvider` on every call; hoist a private static class (or a cached wrapper). `getNeighborTarget` also does not check that `getWorld()` is non-null. |
 | 7 | `AdapterWorldInventory.pushItem` | Unlike `pullItem`, it has no `otherTarget == target` guard; a self-referential world/TE can duplicate or eat items. |
 | 8 | `BurnTimeMetaProvider` | `canApply` and `getMeta` each call `TileEntityFurnace.getItemBurnTime(stack)`, which fires Forge’s fuel event twice per metadata lookup. Compute once (e.g. `getMeta` returning `null` for 0 instead of a separate `canApply`). |
 | 9 | `EnergyMetaProvider.getKey` | Returns `"energy_te"` for an **item** stack metadata provider; the `_te` suffix is misleading and differs from every other key. Renaming is a Lua API break; deprecate/alias instead. |
 | 10 | `AdapterTileSteamTurbine.getTurbineRotorStatus` | Divides by `item.getMaxDamage()`, which is 0 for unbreakable items → `Infinity` → `(int)` overflow → nonsensical negative percentage. Guard `maxDamage > 0`. |
-| 11 | `ItemFingerprint` | No `equals`/`hashCode` (each instance is unique), and `new UniqueIdentifier(id)` splits on `:` with no validation: a Lua table with `id = "stone"` throws `AIOOBE`; a failed registry lookup in the `Item`/`ItemStack` constructors produces `new UniqueIdentifier(null)` → NPE. Validate the id and use the two-argument `UniqueIdentifier(mod, name)` or a proper key class. The Javadoc still calls it “SearchNeedle”. |
-| 12 | `ConverterItemFingerprint` | `(String) nbtHash` is an unchecked cast; a non-string `nbt_hash` gives `ClassCastException` instead of a `LuaException`-friendly `IllegalArgumentException`. |
-| 13 | `AdapterGridBase` | `host.getGridNode(...).getGrid().getCache(...)` NPEs for unformed/unpowered AE2 blocks (grid node or grid is null). Every public AE2 method should throw a descriptive `IllegalStateException` instead. |
-| 14 | `AdapterInterface.findCpu` | `cpu.getName().equals(cpuName)` NPEs if a CPU has no name; use `cpuName.equals(cpu.getName())`. `requestCrafting` also accepts `qty <= 0` and passing `quantity = Long.MAX_VALUE` overflows the AE stack. |
-| 15 | `AdapterStorage.getCellStatus` | Does not validate `slot` against `getCellCount()`; relies on the AE2 implementation throwing `IndexOutOfBoundsException` (it may throw `AIOOBE`, which is caught, or nothing). Validate explicitly. |
-| 16 | `AdapterNetwork.getAvailableItems` | Unchecked `(Map<String,Object>) converter.fromJava(stack)`; if a converter returns anything else this is a `CCE` inside Lua. It also materialises the whole network into a list on every call — a large network can stall the computer thread. |
-| 17 | `FacadeMetaProvider` | Assumes `getBlocksForFacade(stack).length == getMetaValuesForFacade(stack).length`; a mismatched third-party facade gives `AIOOBE`. |
-| 18 | `AdapterArcaneBore` | `isWorking` NPEs if `hasPickaxe` is true but `getPick` returns null; `getPick` hard-codes slot 1 (Thaumcraft internal); a renamed/remapped field makes the `FieldAccess` initialisers fail at adapter construction. |
+| 11 ✅ | `ItemFingerprint` | No `equals`/`hashCode` (each instance is unique), and `new UniqueIdentifier(id)` splits on `:` with no validation: a Lua table with `id = "stone"` throws `AIOOBE`; a failed registry lookup in the `Item`/`ItemStack` constructors produces `new UniqueIdentifier(null)` → NPE. Validate the id and use the two-argument `UniqueIdentifier(mod, name)` or a proper key class. The Javadoc still calls it “SearchNeedle”. |
+| 12 ✅ | `ConverterItemFingerprint` | `(String) nbtHash` is an unchecked cast; a non-string `nbt_hash` gives `ClassCastException` instead of a `LuaException`-friendly `IllegalArgumentException`. |
+| 13 ✅ | `AdapterGridBase` | `host.getGridNode(...).getGrid().getCache(...)` NPEs for unformed/unpowered AE2 blocks (grid node or grid is null). Every public AE2 method should throw a descriptive `IllegalStateException` instead. |
+| 14 ✅ | `AdapterInterface.findCpu` | `cpu.getName().equals(cpuName)` NPEs if a CPU has no name; use `cpuName.equals(cpu.getName())`. `requestCrafting` also accepts `qty <= 0` and passing `quantity = Long.MAX_VALUE` overflows the AE stack. |
+| 15 ✅ | `AdapterStorage.getCellStatus` | Does not validate `slot` against `getCellCount()`; relies on the AE2 implementation throwing `IndexOutOfBoundsException` (it may throw `AIOOBE`, which is caught, or nothing). Validate explicitly. |
+| 16 ✅ | `AdapterNetwork.getAvailableItems` | Unchecked `(Map<String,Object>) converter.fromJava(stack)`; if a converter returns anything else this is a `CCE` inside Lua. It also materialises the whole network into a list on every call — a large network can stall the computer thread. |
+| 17 ✅ | `FacadeMetaProvider` | Assumes `getBlocksForFacade(stack).length == getMetaValuesForFacade(stack).length`; a mismatched third-party facade gives `AIOOBE`. |
+| 18 ✅ | `AdapterArcaneBore` | `isWorking` NPEs if `hasPickaxe` is true but `getPick` returns null; `getPick` hard-codes slot 1 (Thaumcraft internal); a renamed/remapped field makes the `FieldAccess` initialisers fail at adapter construction. |
 | 19 | `AdapterElecticMachine` (typo) | `getProgress` divides by `MAX_ENERGY`; 0 gives `Infinity` → clamps to 100 %. Also, `CLASS` is `null` if IC2 renames the internal class, and the adapter instance is created during module load — a hard crash instead of a skipped adapter. |
 | 20 | `AdapterSecureTile` | `getOwner` is declared `ReturnType.STRING` but returns `GameProfile`; `getOwnerName`/`getOwner` descriptions are identical. |
-| 21 | `SecurityUtils.canModify` | NPEs if `ISecurable#getAccess()` returns null; CoFH tiles normally don’t, but a one-line null guard is cheap. |
-| 22 | `ItemPotionMetaProvider.getPotionInfo` | Range-checks the id but not `Potion.potionTypes[id] != null`; unused-but-in-range ids NPE on `potion.getName()`. |
-| 23 | `AdapterBeacon.getEffectName` | Constructs a throw-away `PotionEffect` just to get the name; `Potion.potionTypes[id].getName()` is enough and cannot throw on valid beacon effects. |
+| 21 ✅ | `SecurityUtils.canModify` | NPEs if `ISecurable#getAccess()` returns null; CoFH tiles normally don’t, but a one-line null guard is cheap. |
+| 22 ✅ | `ItemPotionMetaProvider.getPotionInfo` | Range-checks the id but not `Potion.potionTypes[id] != null`; unused-but-in-range ids NPE on `potion.getName()`. |
+| 23 ✅ | `AdapterBeacon.getEffectName` | Constructs a throw-away `PotionEffect` just to get the name; `Potion.potionTypes[id].getName()` is enough and cannot throw on valid beacon effects. |
 | 24 | `ModuleVanilla` / `ModuleVanillaInventory` / `ModuleVanillaInventoryManipulation` | All three declare an unused, mutable `public static String DUMMY_VANILLA_MODID = "vanilla"`. Remove (it is not a mod id). |
 | 25 | `InventoryMetaProvider.wrapToProxyTable` | Hard-codes `slot + 1` for both architectures; correct for CC and OC (both are 1-based today), but the 1-based assumption is undocumented. |
 | 26 | `EntityLivingMetaProvider` | Exposes the same information twice: `potionEffects` (map `1..n` → effect name) and `potion_effects` (list of tables). One is redundant and confusing for script authors. |
@@ -299,10 +319,8 @@ the client (the hook exists precisely to allow this). Also:
 
 ## 6. Refactors / code quality
 
-1. **De-duplicate the `preInit` if-chain** (`OpenPeripheralIntegration.java:92-150`). It is 25 repeated
-   `if (checkConfig(...)) Integration.addModule(...)` lines and already contains a duplicate key (3.1).
-   Replace with an ordered `List<ModuleEntry>` (`key`, `Supplier<IIntegrationModule>`) and assert unique
-   keys at startup. A unit test could then verify the key set without FML.
+1. **De-duplicate the `preInit` if-chain** ✅ (`IntegrationModules`). The 25-entry table is ordered, has a
+   startup duplicate-key check, and `IntegrationModulesTest` pins the config-key set.
 2. **Reflection target constants**: the string literals
    (`"ic2.core.block.machine.tileentity.TileEntityElectricMachine"`,
    `"powercrystals.minefactoryreloaded.tile.machine.*"`, `"thaumcraft.common.tiles.*"`, …) are spread over
@@ -413,7 +431,7 @@ Highest-value additions:
 ```text
 ./gradlew updateDependencies        # then manually corrected (AE2 1099, OpenModsLib 0.10.15)
 ./gradlew spotlessApply
-./gradlew test                      # 80 tests, green
+./gradlew test                      # 89 tests, green
 ./gradlew jacocoTestReport          # 21.3 % line, 18.6 % branch
 ./gradlew check                     # green
 ./gradlew gameTestServer            # green (adapter + real Lua markers)

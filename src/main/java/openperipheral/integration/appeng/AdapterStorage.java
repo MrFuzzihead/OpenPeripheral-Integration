@@ -44,10 +44,11 @@ public class AdapterStorage implements IPeripheralAdapter {
     @ScriptCallable(returnTypes = { ReturnType.NUMBER, ReturnType.STRING })
     public IMultiReturn getCellStatus(IChestOrDrive target, @Arg(name = "slot") Index slot) {
         try {
+            slot.checkElementIndex("slot", target.getCellCount());
             int status = target.getCellStatus(slot.value);
             return MultiReturn.wrap(status, intToState(status));
         } catch (IndexOutOfBoundsException e) {
-            throw new IllegalArgumentException("Invalid cell index: " + slot);
+            throw new IllegalArgumentException("Invalid cell index: " + slot, e);
         }
     }
 }

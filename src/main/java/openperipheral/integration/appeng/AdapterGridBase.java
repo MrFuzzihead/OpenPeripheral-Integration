@@ -2,9 +2,12 @@ package openperipheral.integration.appeng;
 
 import net.minecraftforge.common.util.ForgeDirection;
 
+import com.google.common.base.Preconditions;
+
 import appeng.api.networking.IGrid;
 import appeng.api.networking.IGridCache;
 import appeng.api.networking.IGridHost;
+import appeng.api.networking.IGridNode;
 import appeng.api.networking.crafting.ICraftingGrid;
 import appeng.api.networking.energy.IEnergyGrid;
 import appeng.api.networking.storage.IStorageGrid;
@@ -19,9 +22,21 @@ import openperipheral.integration.vanilla.ItemFingerprint;
 
 public abstract class AdapterGridBase implements IPeripheralAdapter {
 
+    /**
+     * Returns the grid node of an AE2 host, failing with a descriptive message when the block is not
+     * formed/powered yet (both {@code getGridNode} and {@code getGrid} can be null in that state).
+     */
+    protected static IGridNode getNode(IGridHost host) {
+        final IGridNode node = host.getGridNode(ForgeDirection.UNKNOWN);
+        Preconditions.checkState(node != null, "AE2 grid node is not available (block is unformed or unpowered)");
+
+        final IGrid grid = node.getGrid();
+        Preconditions.checkState(grid != null, "AE2 grid is not available (block is unformed or unpowered)");
+        return node;
+    }
+
     protected <T extends IGridCache> T getCache(Class<T> cls, IGridHost host) {
-        return host.getGridNode(ForgeDirection.UNKNOWN)
-            .getGrid()
+        return getNode(host).getGrid()
             .getCache(cls);
     }
 
@@ -38,8 +53,7 @@ public abstract class AdapterGridBase implements IPeripheralAdapter {
     }
 
     protected IGrid getGrid(IGridHost host) {
-        return host.getGridNode(ForgeDirection.UNKNOWN)
-            .getGrid();
+        return getNode(host).getGrid();
     }
 
     protected static boolean compareToAEStack(ItemFingerprint needle, IAEItemStack hayStack, boolean craftable) {

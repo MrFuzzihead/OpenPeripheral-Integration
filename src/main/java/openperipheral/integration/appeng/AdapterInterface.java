@@ -55,6 +55,7 @@ public class AdapterInterface extends AdapterGridBase {
         @Arg(name = "cpu", description = "The name of the CPU you want to use") String wantedCpuName) {
         ICraftingGrid craftingGrid = getCraftingGrid(host);
         if (quantity == null) quantity = 1L;
+        Preconditions.checkArgument(quantity > 0, "Quantity must be positive");
 
         ICraftingCPU wantedCpu = findCpu(craftingGrid, wantedCpuName);
 
@@ -171,8 +172,7 @@ public class AdapterInterface extends AdapterGridBase {
 
     private static ICraftingCPU findCpu(ICraftingGrid craftingGrid, String cpuName) {
         if (cpuName != null) {
-            for (ICraftingCPU cpu : craftingGrid.getCpus()) if (cpu.getName()
-                .equals(cpuName)) return cpu;
+            for (ICraftingCPU cpu : craftingGrid.getCpus()) if (cpuName.equals(cpu.getName())) return cpu;
         }
 
         return null;

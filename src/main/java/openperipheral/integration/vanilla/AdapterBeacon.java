@@ -1,6 +1,6 @@
 package openperipheral.integration.vanilla;
 
-import net.minecraft.potion.PotionEffect;
+import net.minecraft.potion.Potion;
 import net.minecraft.tileentity.TileEntityBeacon;
 
 import openperipheral.api.adapter.IPeripheralAdapter;
@@ -39,10 +39,9 @@ public class AdapterBeacon implements IPeripheralAdapter {
     }
 
     private static String getEffectName(int effectId) {
-        if (effectId != 0) {
-            PotionEffect effect = new PotionEffect(effectId, 180, 0, true);
-            return effect.getEffectName();
-        }
-        return NONE;
+        if (effectId <= 0 || effectId >= Potion.potionTypes.length) return NONE;
+
+        final Potion effect = Potion.potionTypes[effectId];
+        return effect != null ? effect.getName() : NONE;
     }
 }

@@ -40,7 +40,11 @@ public class AdapterTileSteamTurbine implements IPeripheralAdapter {
             if (itemStack != null) {
                 Item item = itemStack.getItem();
                 if (item != null) {
-                    return 100 - (int) (itemStack.getItemDamage() * 100.0 / item.getMaxDamage());
+                    final int maxDamage = item.getMaxDamage();
+                    if (maxDamage <= 0) return 100; // unbreakable rotor: treat as brand new
+
+                    final double wear = Math.min(1.0, (double) itemStack.getItemDamage() / maxDamage);
+                    return 100 - (int) (wear * 100.0);
                 }
             }
         }

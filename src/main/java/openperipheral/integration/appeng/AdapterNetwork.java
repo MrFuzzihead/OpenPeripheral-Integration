@@ -55,8 +55,13 @@ public class AdapterNetwork extends AdapterGridBase {
 
         List<Object> result = Lists.newArrayList();
         for (IAEItemStack stack : storageList) {
+            final Object converted = converter.fromJava(stack);
+            if (!(converted instanceof Map)) {
+                throw new IllegalStateException("Converter returned a non-table for AE stack " + stack);
+            }
+
             @SuppressWarnings("unchecked")
-            Map<String, Object> map = (Map<String, Object>) converter.fromJava(stack);
+            final Map<String, Object> map = (Map<String, Object>) converted;
             if (format != null && format != ItemDetails.NONE) {
                 final ItemStack itemStack = stack.getItemStack();
                 if (format == ItemDetails.PROXY) map.put("item", OpcAccess.itemStackMetaBuilder.createProxy(itemStack));

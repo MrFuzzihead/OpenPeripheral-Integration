@@ -24,7 +24,8 @@ public class FacadeMetaProvider extends ItemStackMetaProviderSimple<IFacadeItem>
         int[] meta = target.getMetaValuesForFacade(stack);
 
         List<Map<String, Object>> states = Lists.newArrayList();
-        for (int i = 0; i < blocks.length; i++) {
+        final int count = Math.min(blocks.length, meta.length);
+        for (int i = 0; i < count; i++) {
             Map<String, Object> state = Maps.newHashMap();
             state.put("block", blocks[i].getUnlocalizedName());
             state.put("meta", meta[i]);
