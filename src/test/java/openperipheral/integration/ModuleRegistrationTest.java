@@ -22,13 +22,22 @@ import openperipheral.api.meta.IEntityMetaProvider;
 import openperipheral.api.meta.IEntityPartialMetaBuilder;
 import openperipheral.api.meta.IItemStackMetaProvider;
 import openperipheral.api.meta.IItemStackPartialMetaBuilder;
+import openperipheral.integration.appeng.ModuleAppEng;
 import openperipheral.integration.buildcraft.ModuleBuildCraftFacades;
 import openperipheral.integration.buildcraft.ModuleBuildCraftTile;
 import openperipheral.integration.buildcraft.ModuleBuildCraftTransport;
+import openperipheral.integration.cofh.energy.ModuleCofhEnergy;
+import openperipheral.integration.cofh.inventory.ModuleCofhInventory;
+import openperipheral.integration.cofh.item.ModuleCofhItem;
+import openperipheral.integration.cofh.tileentity.ModuleCofhTileEntity;
+import openperipheral.integration.cofh.transport.ModuleCofhTransport;
 import openperipheral.integration.computercraft.ModuleComputerCraft;
+import openperipheral.integration.enderstorage.ModuleEnderStorage;
 import openperipheral.integration.forestry.ModuleForestry;
 import openperipheral.integration.ic2.ModuleIC2;
 import openperipheral.integration.ic2.ModuleIC2Api;
+import openperipheral.integration.minefactoryreloaded.ModuleMinefactoryReloadedStorage;
+import openperipheral.integration.mystcraft.v2.ModuleMystcraftV2;
 import openperipheral.integration.railcraft.ModuleRailcraft;
 import openperipheral.integration.railcraft.ModuleRailcraftCarts;
 import openperipheral.integration.railcraft.ModuleRailcraftFuel;
@@ -191,6 +200,54 @@ public class ModuleRegistrationTest {
     public void tmechworksModuleRegistersItsAdapter() {
         new ModuleTMechworks().load();
         verify(adapterRegistry).register(any(IPeripheralAdapter.class));
+    }
+
+    @Test
+    public void cofhModulesRegisterTheirAdapters() {
+        new ModuleCofhEnergy().load();
+        verify(adapterRegistry, times(2)).register(any(IPeripheralAdapter.class));
+        verify(itemStackMetaBuilder, times(1)).register(any(IItemStackMetaProvider.class));
+
+        new ModuleCofhInventory().load();
+        verify(adapterRegistry, times(3)).register(any(IPeripheralAdapter.class));
+
+        new ModuleCofhItem().load();
+        verify(itemStackMetaBuilder, times(4)).register(any(IItemStackMetaProvider.class));
+
+        new ModuleCofhTileEntity().load();
+        verify(adapterRegistry, times(8)).register(any(IPeripheralAdapter.class));
+
+        new ModuleCofhTransport().load();
+        verify(adapterRegistry, times(11)).register(any(IPeripheralAdapter.class));
+    }
+
+    @Test
+    public void minefactoryStorageRegistersItsAdapter() {
+        // ModuleMinefactoryReloaded loads internal tile entities whose static initialisers need a
+        // bootstrapped fluid registry; the storage module only touches the public API class.
+        new ModuleMinefactoryReloadedStorage().load();
+        verify(adapterRegistry).register(any(IPeripheralAdapter.class));
+    }
+
+    @Test
+    public void enderStorageRegistersItsAdapter() {
+        new ModuleEnderStorage().load();
+        verify(adapterRegistry).register(any(IPeripheralAdapter.class));
+    }
+
+    @Test
+    public void mystcraftV2RegistersItsAdapterAndMetadata() {
+        new ModuleMystcraftV2().load();
+        verify(adapterRegistry).register(any(IPeripheralAdapter.class));
+        verify(itemStackMetaBuilder, times(3)).register(any(IItemStackMetaProvider.class));
+    }
+
+    @Test
+    public void appEngModuleRegistersAdaptersConverterAndMetadata() {
+        new ModuleAppEng().load();
+        verify(adapterRegistry, times(3)).register(any(IPeripheralAdapter.class));
+        verify(converterManager).register(any(IOutboundTypeConverter.class));
+        verify(itemStackMetaBuilder).register(any(IItemStackMetaProvider.class));
     }
 
     @Test

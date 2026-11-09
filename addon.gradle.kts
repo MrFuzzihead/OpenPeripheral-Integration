@@ -111,13 +111,13 @@ tasks.named<JacocoCoverageVerification>("jacocoTestCoverageVerification") {
                 value = "COVEREDRATIO"
                 // Regression guard, not a target. Most of this mod is thin reflection glue over
                 // third-party APIs that cannot be instantiated headlessly; raise as coverage grows.
-                // Current: ~43.6 % line / ~35.9 % branch (144 tests).
-                minimum = "0.40".toBigDecimal()
+                // Current: ~54.9 % line / ~44.7 % branch (177 tests).
+                minimum = "0.50".toBigDecimal()
             }
             limit {
                 counter = "BRANCH"
                 value = "COVEREDRATIO"
-                minimum = "0.32".toBigDecimal()
+                minimum = "0.40".toBigDecimal()
             }
         }
     }

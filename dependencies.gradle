@@ -69,4 +69,9 @@ dependencies {
     testImplementation("net.industrial-craft:industrialcraft-2:2.2.828-experimental:dev")
     testImplementation("com.github.GTNewHorizons:Railcraft:9.18.0:dev")
     testImplementation("thaumcraft:Thaumcraft:1.7.10-4.2.3.5:dev")
+    testImplementation("com.github.GTNewHorizons:Applied-Energistics-2-Unofficial:rv3-beta-1099-GTNH:dev")
+    testImplementation("com.github.GTNewHorizons:EnderStorage:1.9.0:dev")
+    testImplementation("curse.maven:cofh-core-69162:2388751")
+    testImplementation("curse.maven:minefactory-reloaded-66672:2277486")
+    testImplementation("curse.maven:Mystcraft-224599:2417044")
 }
